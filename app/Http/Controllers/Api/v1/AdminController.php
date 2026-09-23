@@ -88,7 +88,7 @@ class AdminController extends Controller
         return response()->json([
             'overview' => [
                 'total_gmv' => $totalGmv,
-                'formatted_gmv' => '$'.number_format($totalGmv / 100, 2),
+                'formatted_gmv' => '₱'.number_format($totalGmv / 100, 2),
                 'total_orders' => $totalOrders,
                 'active_sellers' => $activeSellers,
                 'pending_sellers' => $pendingSellers,

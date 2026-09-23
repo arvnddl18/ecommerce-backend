@@ -353,7 +353,7 @@ export const CartDrawer: React.FC = () => {
                 {cart.coupon && (
                   <div className="flex justify-between text-[#2E7D5B] font-medium">
                     <span>Voucher ({cart.coupon.code})</span>
-                    <span className="font-mono">-{cart.formatted_discount || '$0.00'}</span>
+                    <span className="font-mono">-{cart.formatted_discount || '₱0.00'}</span>
                   </div>
                 )}
                 <div className="flex justify-between">

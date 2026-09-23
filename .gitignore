@@ -3,6 +3,7 @@
 .env
 .env.backup
 .env.production
+.env.docker.local
 .phpactor.json
 .phpunit.result.cache
 /.codex
@@ -26,7 +27,12 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# Obsidian
+# Obsidian Memory Brain (Volatile UI state, caches, and trash)
 **/.obsidian/workspace.json
 **/.obsidian/workspace-mobile.json
 **/.obsidian/cache/
+**/.obsidian/indexeddb/
+**/.obsidian/hotkeys.json
+**/.obsidian/backlink-cache.json
+**/.trash/
+**/*.sync-conflict-*

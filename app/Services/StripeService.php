@@ -98,6 +98,64 @@ class StripeService
     }
 
     /**
+     * Retrieve a Stripe Checkout Session by ID.
+     */
+    public function retrieveCheckoutSession(string $sessionId): ?Session
+    {
+        try {
+            return $this->getClient()->checkout->sessions->retrieve($sessionId);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Create a Stripe Express Connected Account for a seller.
+     */
+    public function createExpressAccount(string $email, string $country = 'US'): ?string
+    {
+        $prev = error_reporting(error_reporting() & ~E_USER_WARNING);
+
+        try {
+            $account = @$this->getClient()->accounts->create([
+                'type' => 'express',
+                'country' => $country,
+                'email' => $email,
+                'capabilities' => [
+                    'transfers' => ['requested' => true],
+                    'card_payments' => ['requested' => true],
+                ],
+                'business_type' => 'individual',
+            ]);
+
+            return $account->id;
+        } catch (\Throwable) {
+            return null;
+        } finally {
+            error_reporting($prev);
+        }
+    }
+
+    /**
+     * Create an onboarding AccountLink for a connected Stripe account.
+     */
+    public function createAccountLink(string $accountId, string $returnUrl, string $refreshUrl): ?string
+    {
+        try {
+            $accountLink = $this->getClient()->accountLinks->create([
+                'account' => $accountId,
+                'refresh_url' => $refreshUrl,
+                'return_url' => $returnUrl,
+                'type' => 'account_onboarding',
+            ]);
+
+            return $accountLink->url;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * Verify and construct incoming Stripe webhook event.
      *
      * @throws \UnexpectedValueException

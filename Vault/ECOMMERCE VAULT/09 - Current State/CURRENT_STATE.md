@@ -43,7 +43,8 @@ Tags: #current-state #roadmap #marketplace #verified #proposed
    - **PHPUnit Feature Tests:** 74 passing tests (292 assertions, 0 failures).
    - **Laravel Pint:** 100% PSR-12 styling compliance.
    - **Larastan Static Analysis:** 0 errors at level 5 with full memory allocation.
-   - **Vite & TypeScript:** Clean build output (`npm run build`, 3.30s).
+   - **Vite & TypeScript:** Clean build output (`npm run build`, 10.52s).
+   - **Boutique Docket Consistency:** Aligned order confirmation (`OrderSuccess.tsx`) and cancellation (`OrderCancel.tsx`) to "The Rail & The Rack" design system, eliminating white-on-white text and dark-box mismatches.
 
 ## 🛑 Active Blockers
 - None. System is completely green and ready for local development, Docker deployment, or production cloud shipping.
@@ -67,3 +68,4 @@ Tags: #current-state #roadmap #marketplace #verified #proposed
 - [[ADR-008_The_Rail_and_The_Rack_Storefront_Design_System]]
 - [[ADR-009_Role_Based_Interface_Isolation]]
 - [[ADR-010_Above_The_Fold_Product_Grid_and_Immediate_Purchase_Urgency]]
+- [[Order_Confirmation_Dark_Theme_Mismatch]]

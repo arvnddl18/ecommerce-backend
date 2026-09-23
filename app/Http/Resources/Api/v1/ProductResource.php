@@ -31,8 +31,8 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,
-            'price' => $this->price, // In cents
-            'formatted_price' => '$'.$this->formatted_price,
+            'price' => $this->price, // In centavos
+            'formatted_price' => '₱'.$this->formatted_price,
             'stock' => $this->stock,
             'in_stock' => $this->inStock(),
             'sku' => $this->sku,
@@ -45,7 +45,7 @@ class ProductResource extends JsonResource
                 'stock_quantity' => $v->stock_quantity,
                 'price_override' => $v->price_override,
                 'effective_price' => $v->getEffectivePrice(),
-                'formatted_effective_price' => '$'.number_format($v->getEffectivePrice() / 100, 2),
+                'formatted_effective_price' => '₱'.number_format($v->getEffectivePrice() / 100, 2),
             ]) : [],
             'gallery_images' => $this->relationLoaded('galleryImages') ? $this->galleryImages->map(fn ($img) => [
                 'id' => $img->id,

@@ -1,6 +1,6 @@
 # ADR-006: Stripe Connect for Multi-Seller Payouts
 
-Status: VERIFIED (Payout Splitting & Transfer Math) · PROPOSED (Hosted AccountLink Onboarding)
+Status: VERIFIED (Payout Splitting, AccountLink Onboarding & Stripe Sync)
 Date: 2026-09-23
 Tags: #adr #architecture #payments #stripe #marketplace #calibrated
 
@@ -20,8 +20,9 @@ Adopt **Stripe Connect** (utilizing Express or Custom connected accounts) to han
 - **Transfer Splitting Execution:** Fully implemented via `\Stripe\Transfer::create()` in [ProcessStripeWebhookJob.php](file:///c:/arvincodework/ecommerce-backend/app/Jobs/ProcessStripeWebhookJob.php).
 - **Commission Allocation:** 10% platform commission deducted automatically; 90% net revenue credited to `seller_profiles.stripe_account_id` with `transfer_group = "ORDER_{number}"`.
 - **Transactional Notifications:** Queues [OrderConfirmationMail.php](file:///c:/arvincodework/ecommerce-backend/app/Mail/OrderConfirmationMail.php) to buyer and [SellerOrderNotificationMail.php](file:///c:/arvincodework/ecommerce-backend/app/Mail/SellerOrderNotificationMail.php) to makers.
-- **Automated QA:** Covered by [StripeConnectTransferAndEmailNotificationTest.php](file:///c:/arvincodework/ecommerce-backend/tests/Feature/StripeConnectTransferAndEmailNotificationTest.php).
-- **Merchant Onboarding Status:** Currently simulated in [SellerController.php::payoutSetup](file:///c:/arvincodework/ecommerce-backend/app/Http/Controllers/Api/v1/SellerController.php#L298-L316) using mock account strings (`acct_connect_...`) or manual account ID entry; live Stripe-hosted KYC onboarding redirect via `\Stripe\AccountLink::create()` is a planned roadmap item.
+- **Automated QA:** Covered by [StripeConnectTransferAndEmailNotificationTest.php](file:///c:/arvincodework/ecommerce-backend/tests/Feature/StripeConnectTransferAndEmailNotificationTest.php) and [StripeSyncOrdersCommandTest.php](file:///c:/arvincodework/ecommerce-backend/tests/Feature/StripeSyncOrdersCommandTest.php).
+- **Merchant Onboarding Status:** Implemented in [SellerController.php::payoutSetup](file:///c:/arvincodework/ecommerce-backend/app/Http/Controllers/Api/v1/SellerController.php#L293-L350) and [StripeService.php](file:///c:/arvincodework/ecommerce-backend/app/Services/StripeService.php) with live `\Stripe\AccountLink::create()` support when Connect is active, and resilient fallback for local simulations.
+- **Order Payment Synchronization:** Implemented in [StripeSyncOrdersCommand.php](file:///c:/arvincodework/ecommerce-backend/app/Console/Commands/StripeSyncOrdersCommand.php) (`php artisan stripe:sync-orders`) to query Stripe Checkout directly and fulfill paid orders even when local webhooks are delayed.
 
 ## Related Links
 - [[CORE_MEMORY]]

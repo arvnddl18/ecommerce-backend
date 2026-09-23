@@ -40,11 +40,11 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       .finally(() => setIsLoading(false));
   }, [selectedCategory, search, currentSort]);
 
-  // Client-side quick filters (All, In stock, Under $150) matching references/index.html
+  // Client-side quick filters (All, In stock, Under ₱80)
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       if (activeFilter === 'in_stock' && !product.in_stock) return false;
-      if (activeFilter === 'under_150' && product.price > 15000) return false;
+      if (activeFilter === 'under_80' && product.price > 8000) return false;
       return true;
     });
   }, [products, activeFilter]);
@@ -63,7 +63,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           </p>
 
           <div className="flex items-center gap-6">
-            {/* Quick Filter Links matching references/index.html */}
+            {/* Quick Filter Links */}
             <div className="filter-links">
               <button
                 type="button"
@@ -81,10 +81,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setActiveFilter('under_150')}
-                className={activeFilter === 'under_150' ? 'filter-active' : ''}
+                onClick={() => setActiveFilter('under_80')}
+                className={activeFilter === 'under_80' ? 'filter-active' : ''}
               >
-                Under $150
+                Under ₱80
               </button>
             </div>
           </div>

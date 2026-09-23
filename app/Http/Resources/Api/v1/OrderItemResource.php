@@ -27,10 +27,10 @@ class OrderItemResource extends JsonResource
             'fulfillment_status' => $this->fulfillment_status,
             'product_name' => $this->product_name,
             'unit_price' => $this->unit_price,
-            'formatted_unit_price' => '$'.number_format($this->unit_price / 100, 2),
+            'formatted_unit_price' => '₱'.number_format($this->unit_price / 100, 2),
             'quantity' => $this->quantity,
             'total_price' => $this->total_price,
-            'formatted_total_price' => '$'.number_format($this->total_price / 100, 2),
+            'formatted_total_price' => '₱'.number_format($this->total_price / 100, 2),
         ];
     }
 }

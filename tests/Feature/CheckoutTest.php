@@ -98,4 +98,38 @@ class CheckoutTest extends TestCase
             ->assertJsonPath('data.order_number', 'ORD-TEST123456')
             ->assertJsonPath('data.status', 'paid');
     }
+
+    public function test_get_order_status_auto_fulfills_when_stripe_session_is_paid(): void
+    {
+        $order = Order::factory()->create([
+            'order_number' => 'ORD-AUTO-FULFILL-123',
+            'status' => Order::STATUS_PENDING,
+            'stripe_session_id' => 'cs_test_auto_paid_session',
+        ]);
+
+        $mockStripe = Mockery::mock(StripeService::class);
+        $mockSession = Session::constructFrom([
+            'id' => 'cs_test_auto_paid_session',
+            'payment_status' => 'paid',
+            'status' => 'complete',
+            'amount_total' => 10000,
+            'currency' => 'php',
+            'payment_intent' => 'pi_test_auto_123',
+        ]);
+
+        $mockStripe->shouldReceive('retrieveCheckoutSession')
+            ->with('cs_test_auto_paid_session')
+            ->once()
+            ->andReturn($mockSession);
+
+        $this->app->instance(StripeService::class, $mockStripe);
+
+        $response = $this->getJson(route('api.v1.checkout.orders.status', $order->stripe_session_id));
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.status', 'paid');
+
+        $order->refresh();
+        $this->assertEquals(Order::STATUS_PAID, $order->status);
+    }
 }

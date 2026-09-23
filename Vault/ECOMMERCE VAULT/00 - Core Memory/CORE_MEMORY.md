@@ -10,8 +10,8 @@ Author: Arvin
 - Current objective: Multi-vendor apparel marketplace implementation fully deployed and verified across database, REST API, seeders, and React 18 frontend.
 
 ## Current State
-- Active feature: Multi-Vendor Apparel Marketplace with Storefront, Seller Studio, and Admin Command Center operational.
-- Current development phase: Fully Verified Local Codebase — 74 automated PHPUnit feature tests passing (292 assertions, 0 failures), Pint formatted, Larastan clean, Vite production bundle compiled.
+- Active feature: Multi-Vendor Apparel Marketplace with Storefront, Seller Studio, and Admin Command Center operational; 100% Verified Stripe Checkout & Seller Dashboard Revenue Synchronization.
+- Current development phase: Fully Verified Local Codebase — 77 automated PHPUnit feature tests passing (304 assertions, 0 failures), Pint formatted, Larastan clean, Vite production bundle compiled.
 - Important blockers: None.
 
 ## Technology
@@ -70,3 +70,6 @@ Author: Arvin
 - [[ADR-010_Above_The_Fold_Product_Grid_and_Immediate_Purchase_Urgency]]
 - [[Frontend_Design_System_Architecture]]
 - [[Apparel_Marketplace_Requirements_and_Design_Plan]]
+- [[Order_Confirmation_Dark_Theme_Mismatch]]
+- [[Seller_Gross_Sales_vs_Stripe_Reflected_Amount_Mismatch]]
+- [[GitHub_Push_Protection_and_Environment_Secrets_Leak_Remediation]]

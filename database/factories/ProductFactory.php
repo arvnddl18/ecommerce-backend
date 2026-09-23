@@ -26,7 +26,7 @@ class ProductFactory extends Factory
             'name' => ucfirst($name),
             'slug' => Str::slug($name),
             'description' => fake()->paragraphs(2, true),
-            'price' => fake()->numberBetween(1000, 99900), // In cents ($10.00 - $999.00)
+            'price' => fake()->numberBetween(6000, 10000), // In centavos (₱60.00 - ₱100.00)
             'stock' => fake()->numberBetween(5, 100),
             'sku' => strtoupper(fake()->unique()->bothify('SKU-####-????')),
             'images' => [

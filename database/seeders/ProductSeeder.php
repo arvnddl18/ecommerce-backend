@@ -112,7 +112,7 @@ class ProductSeeder extends Seeder
                 'category_id' => $streetwear->id,
                 'name' => 'Heavyweight Dropped-Shoulder Boxy Hoodie',
                 'description' => '480 GSM organic cotton french terry hoodie with a relaxed boxy cut, seamless double-layer hood, and ribbed side gussets.',
-                'price' => 11000, // $110.00
+                'price' => 8500, // ₱85.00
                 'stock' => 65,
                 'sku' => 'APX-HD-01',
                 'images' => [
@@ -133,7 +133,7 @@ class ProductSeeder extends Seeder
                 'category_id' => $outerwear->id,
                 'name' => 'Vanguard 3-Layer Stormproof Shell Jacket',
                 'description' => 'High-performance 20,000mm waterproof breathable technical shell with Aquaguard YKK zippers, articulated sleeves, and packable storm hood.',
-                'price' => 24500, // $245.00
+                'price' => 9500, // ₱95.00
                 'stock' => 38,
                 'sku' => 'NOIR-SH-02',
                 'images' => [
@@ -152,7 +152,7 @@ class ProductSeeder extends Seeder
                 'category_id' => $essentials->id,
                 'name' => 'Signature 280 GSM Heavy Crewneck Tee',
                 'description' => 'Substantial 100% Pima combed cotton tee with reinforced 1-inch bound collar, preshrunk structured drape, and blind-stitched hem.',
-                'price' => 4800, // $48.00
+                'price' => 6000, // ₱60.00
                 'stock' => 120,
                 'sku' => 'SOL-TEE-03',
                 'images' => [
@@ -171,7 +171,7 @@ class ProductSeeder extends Seeder
                 'category_id' => $athleisure->id,
                 'name' => 'AeroFlex Tapered Cargo Track Pants',
                 'description' => 'Four-way technical stretch double-weave knit pants featuring zippered bellow utility cargo pockets, articulated knees, and drawcord waistband.',
-                'price' => 9500, // $95.00
+                'price' => 7500, // ₱75.00
                 'stock' => 50,
                 'sku' => 'APX-TRK-04',
                 'images' => [
@@ -190,7 +190,7 @@ class ProductSeeder extends Seeder
                 'category_id' => $footwear->id,
                 'name' => 'Velocity V1 Low-Top Minimal Sneaker',
                 'description' => 'Handcrafted full-grain Italian leather sneakers featuring Margom vulcanized rubber cupsole, waxed laces, and cushioned calfskin lining.',
-                'price' => 18500, // $185.00
+                'price' => 9000, // ₱90.00
                 'stock' => 40,
                 'sku' => 'NOIR-SNK-05',
                 'images' => [

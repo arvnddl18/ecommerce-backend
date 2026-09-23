@@ -1,0 +1,92 @@
+# ==============================================================================
+# Docker Build Ignore File (.dockerignore)
+# Optimized for Multi-Stage Production Containerization
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Autonomous Obsidian Memory Brain & Agent Customizations
+# ------------------------------------------------------------------------------
+# Exclude persistent markdown vaults, ADRs, and agent skills from production images
+/Vault/
+**/Vault/
+**/.obsidian/
+/.agents/
+/references/
+/scratch/
+
+# ------------------------------------------------------------------------------
+# 2. Version Control & Git Artifacts
+# ------------------------------------------------------------------------------
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# ------------------------------------------------------------------------------
+# 3. Environment Files & Secrets (Security Guardrail)
+# ------------------------------------------------------------------------------
+# Secrets must be injected dynamically via runtime orchestrators (e.g., env_file)
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# ------------------------------------------------------------------------------
+# 4. Host OS Dependencies & Local Vendor Trees
+# ------------------------------------------------------------------------------
+# Multi-stage Docker builds (node:20-alpine and composer:2.8) build clean Linux binaries
+/node_modules/
+/vendor/
+
+# ------------------------------------------------------------------------------
+# 5. Local Asset Builds & Dev Artifacts
+# ------------------------------------------------------------------------------
+/public/build/
+/public/hot
+/public/storage
+
+# ------------------------------------------------------------------------------
+# 6. Laravel Writable Storage, Caches & Logs
+# ------------------------------------------------------------------------------
+/storage/*.key
+/storage/pail/
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+
+# ------------------------------------------------------------------------------
+# 7. Automated Test Suites & Quality Assurance
+# ------------------------------------------------------------------------------
+/tests/
+/phpunit.xml
+/.phpunit.cache/
+/.phpunit.result.cache
+/phpstan.neon
+/pint.json
+
+# ------------------------------------------------------------------------------
+# 8. IDEs, Editors & Operating System Metadata
+# ------------------------------------------------------------------------------
+.idea/
+.vscode/
+.zed/
+.codex/
+.cursor/
+.DS_Store
+Thumbs.db
+*.log
+_ide_helper*.php
+Homestead.json
+Homestead.yaml
+
+# ------------------------------------------------------------------------------
+# 9. Internal Development Documentation
+# ------------------------------------------------------------------------------
+CLAUDE.md
+AGENTS.md
+TECH_STACK_DOCUMENTATION.md

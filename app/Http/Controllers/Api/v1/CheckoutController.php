@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api\v1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\v1\Checkout\CheckoutSessionRequest;
 use App\Http\Resources\Api\v1\OrderResource;
+use App\Jobs\ProcessStripeWebhookJob;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\WebhookEvent;
 use App\Services\CartService;
 use App\Services\StripeService;
 use Illuminate\Http\JsonResponse;
@@ -157,8 +159,45 @@ class CheckoutController extends Controller
             ->with('items')
             ->firstOrFail();
 
+        // If order is pending but has a Stripe session, immediately verify with Stripe API
+        if ($order->status === Order::STATUS_PENDING && $order->stripe_session_id) {
+            $session = $this->stripeService->retrieveCheckoutSession($order->stripe_session_id);
+
+            if ($session && ($session->payment_status === 'paid' || $session->status === 'complete')) {
+                $eventId = 'evt_direct_'.$session->id.'_'.time();
+
+                $eventData = [
+                    'id' => $eventId,
+                    'type' => 'checkout.session.completed',
+                    'data' => [
+                        'object' => [
+                            'id' => $session->id,
+                            'payment_intent' => $session->payment_intent,
+                            'payment_status' => $session->payment_status,
+                            'metadata' => [
+                                'order_id' => $order->id,
+                                'order_number' => $order->order_number,
+                            ],
+                        ],
+                    ],
+                ];
+
+                WebhookEvent::create([
+                    'stripe_event_id' => $eventId,
+                    'type' => 'checkout.session.completed',
+                    'payload' => $eventData,
+                    'processed_at' => now(),
+                ]);
+
+                $job = new ProcessStripeWebhookJob($eventData);
+                $job->handle();
+
+                $order->refresh();
+            }
+        }
+
         return response()->json([
-            'data' => new OrderResource($order),
+            'data' => new OrderResource($order->load('items')),
         ]);
     }
 }

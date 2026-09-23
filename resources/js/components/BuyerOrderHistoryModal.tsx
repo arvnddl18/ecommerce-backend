@@ -162,7 +162,7 @@ export const BuyerOrderHistoryModal: React.FC<BuyerOrderHistoryModalProps> = ({
                   <div>
                     <span className="text-xs font-mono text-[#8C827A]">Total Amount</span>
                     <p className="font-['Space_Grotesk'] font-bold text-lg text-[#1A1A1A]">
-                      ${(selectedOrder.total_amount / 100).toFixed(2)}
+                      ₱{(selectedOrder.total_amount / 100).toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -177,7 +177,7 @@ export const BuyerOrderHistoryModal: React.FC<BuyerOrderHistoryModalProps> = ({
                         </h4>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="font-mono text-xs text-[#8C827A]">
-                            Qty: {item.quantity} · ${(item.unit_price / 100).toFixed(2)} ea
+                            Qty: {item.quantity} · ₱{(item.unit_price / 100).toFixed(2)} ea
                           </span>
                           {item.variant_details && (
                             <span className="inline-flex items-center px-1.5 py-0.5 bg-[#F0EFEA] text-[11px] font-mono text-[#5A524C]">
@@ -189,7 +189,7 @@ export const BuyerOrderHistoryModal: React.FC<BuyerOrderHistoryModalProps> = ({
                       </div>
                       <div className="text-right">
                         <span className="font-mono text-sm font-semibold text-[#1A1A1A]">
-                          ${(item.total_price / 100).toFixed(2)}
+                          ₱{(item.total_price / 100).toFixed(2)}
                         </span>
                         {onReviewProduct && (
                           <div className="mt-2">
@@ -247,7 +247,7 @@ export const BuyerOrderHistoryModal: React.FC<BuyerOrderHistoryModalProps> = ({
 
                     <div className="flex items-center gap-4">
                       <span className="font-['Space_Grotesk'] font-bold text-base text-[#1A1A1A]">
-                        ${(order.total_amount / 100).toFixed(2)}
+                        ₱{(order.total_amount / 100).toFixed(2)}
                       </span>
                       <span className="text-[#8C827A] text-xs font-mono">View →</span>
                     </div>

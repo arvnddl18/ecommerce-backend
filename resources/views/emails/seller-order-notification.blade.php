@@ -33,12 +33,12 @@
                     </div>
                 @endif
             </div>
-            <div>${{ number_format($item->total_price / 100, 2) }}</div>
+            <div>₱{{ number_format($item->total_price / 100, 2) }}</div>
         </div>
     @endforeach
 
     <div class="payout-box">
-        <strong>Stripe Connect Payout Allocation:</strong> ${{ number_format($netPayout / 100, 2) }}
+        <strong>Stripe Connect Payout Allocation:</strong> ₱{{ number_format($netPayout / 100, 2) }}
         <div style="font-size: 12px; color: #6B6B6B; margin-top: 4px;">
             Platform Commission: 10% retained · Remaining 90% credited to your Stripe account.
         </div>

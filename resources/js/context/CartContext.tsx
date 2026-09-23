@@ -20,7 +20,7 @@ const initialCart: CartData = {
   items: [],
   total_quantity: 0,
   subtotal: 0,
-  formatted_subtotal: '$0.00',
+  formatted_subtotal: '₱0.00',
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);

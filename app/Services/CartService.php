@@ -95,11 +95,11 @@ class CartService
                     'sku' => $variant->sku,
                 ] : null,
                 'price' => $unitPrice,
-                'formatted_price' => '$'.number_format($unitPrice / 100, 2),
+                'formatted_price' => '₱'.number_format($unitPrice / 100, 2),
                 'quantity' => $quantity,
                 'stock' => $stock,
                 'total' => $itemTotal,
-                'formatted_total' => '$'.number_format($itemTotal / 100, 2),
+                'formatted_total' => '₱'.number_format($itemTotal / 100, 2),
                 'image' => $product->images[0] ?? null,
             ];
         }
@@ -117,7 +117,7 @@ class CartService
                     'discount_percent' => $coupon->discount_percent,
                     'discount_amount' => $coupon->discount_amount,
                     'calculated_discount' => $discount,
-                    'formatted_discount' => '$'.number_format($discount / 100, 2),
+                    'formatted_discount' => '₱'.number_format($discount / 100, 2),
                 ];
             } else {
                 Cache::forget($this->couponCacheKey($identifier));
@@ -130,12 +130,12 @@ class CartService
             'items' => $items,
             'total_quantity' => $totalQuantity,
             'subtotal' => $subtotal,
-            'formatted_subtotal' => '$'.number_format($subtotal / 100, 2),
+            'formatted_subtotal' => '₱'.number_format($subtotal / 100, 2),
             'coupon' => $appliedCoupon,
             'discount' => $discount,
-            'formatted_discount' => '$'.number_format($discount / 100, 2),
+            'formatted_discount' => '₱'.number_format($discount / 100, 2),
             'total' => $total,
-            'formatted_total' => '$'.number_format($total / 100, 2),
+            'formatted_total' => '₱'.number_format($total / 100, 2),
         ];
     }
 

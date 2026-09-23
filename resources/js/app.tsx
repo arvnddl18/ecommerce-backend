@@ -33,7 +33,19 @@ const MainApp: React.FC = () => {
   const [isOrdersOpen, setIsOrdersOpen] = useState<boolean>(false);
   const [wishlistIds, setWishlistIds] = useState<number[]>([]);
 
-  const pathname = window.location.pathname;
+  const [pathname, setPathname] = useState<string>(() => window.location.pathname);
+
+  // Sync pathname on browser navigation (back/forward) and popstate events
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setPathname(window.location.pathname);
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+    };
+  }, []);
 
   // Load Categories for Rack-Rail
   useEffect(() => {
@@ -112,9 +124,18 @@ const MainApp: React.FC = () => {
 
   const navigateToCatalog = () => {
     window.history.pushState({}, '', '/');
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    setPathname('/');
     setSelectedCategory(null);
     setCurrentSurface('storefront');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSurfaceChange = (surface: 'storefront' | 'seller' | 'admin') => {
+    if (surface === 'storefront' && pathname !== '/') {
+      window.history.pushState({}, '', '/');
+      setPathname('/');
+    }
+    setCurrentSurface(surface);
   };
 
   const scrollToCatalog = () => {
@@ -132,7 +153,8 @@ const MainApp: React.FC = () => {
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         currentSurface={currentSurface}
-        onChangeSurface={setCurrentSurface}
+        onChangeSurface={handleSurfaceChange}
+        onNavigateHome={navigateToCatalog}
         wishlistCount={wishlistIds.length}
         onOpenWishlist={() => {
           if (!isAuthenticated) {

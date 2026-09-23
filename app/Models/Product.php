@@ -121,7 +121,7 @@ class Product extends Model
     }
 
     /**
-     * Price in standard dollar/currency unit.
+     * Price in standard currency unit (e.g. Philippine peso).
      */
     public function getFormattedPriceAttribute(): string
     {

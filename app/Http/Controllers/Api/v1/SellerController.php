@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
+use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\SellerProfile;
+use App\Services\StripeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -41,7 +43,7 @@ class SellerController extends Controller
         $seller = $this->getSeller($request);
 
         $orderItems = OrderItem::where('seller_id', $seller->id)
-            ->whereHas('order', fn ($q) => $q->where('status', '!=', 'cancelled'))
+            ->whereHas('order', fn ($q) => $q->where('status', Order::STATUS_PAID))
             ->get();
 
         $totalRevenue = $orderItems->sum('total_price');
@@ -67,7 +69,7 @@ class SellerController extends Controller
             ],
             'stats' => [
                 'total_revenue' => $totalRevenue,
-                'formatted_revenue' => '$'.number_format($totalRevenue / 100, 2),
+                'formatted_revenue' => '₱'.number_format($totalRevenue / 100, 2),
                 'pending_fulfillment' => $pendingFulfillment,
                 'items_sold' => $totalItemsSold,
                 'total_listings' => $seller->products()->count(),
@@ -269,6 +271,17 @@ class SellerController extends Controller
             ->latest('id')
             ->paginate(20);
 
+        $orderItems->getCollection()->transform(function (OrderItem $item) {
+            $item->order_number = $item->order?->order_number;
+            $item->order_status = $item->order?->status;
+            $item->formatted_total = '₱'.number_format($item->total_price / 100, 2);
+            $item->sku = $item->variant?->sku ?? $item->product?->sku ?? 'N/A';
+            $item->size = $item->variant_details['size'] ?? 'Standard';
+            $item->color = $item->variant_details['color'] ?? 'Standard';
+
+            return $item;
+        });
+
         return response()->json($orderItems);
     }
 
@@ -279,6 +292,11 @@ class SellerController extends Controller
     {
         $seller = $this->getSeller($request);
         abort_unless($orderItem->seller_id === $seller->id || $request->user()?->isAdmin(), 403, 'Unauthorized.');
+
+        // Prevent dispatching unpaid orders
+        if ($orderItem->order && $orderItem->order->status !== Order::STATUS_PAID) {
+            abort(422, 'Cannot dispatch an unpaid order. Payment must be confirmed first.');
+        }
 
         $validated = $request->validate([
             'status' => ['required', 'in:pending,processing,shipped,delivered,cancelled'],
@@ -297,23 +315,54 @@ class SellerController extends Controller
     /**
      * Setup or update Stripe Connect payout account.
      */
-    public function payoutSetup(Request $request): JsonResponse
+    public function payoutSetup(Request $request, StripeService $stripeService): JsonResponse
     {
         $seller = $this->getSeller($request);
 
         $validated = $request->validate([
-            'stripe_account_id' => ['sometimes', 'string', 'max:255'],
+            'stripe_account_id' => ['sometimes', 'nullable', 'string', 'max:255'],
         ]);
 
-        $accountId = $validated['stripe_account_id'] ?? ('acct_connect_'.Str::random(16));
+        $accountId = $validated['stripe_account_id'] ?? null;
+        $onboardingUrl = null;
 
-        $seller->update([
-            'stripe_account_id' => $accountId,
-        ]);
+        if (! empty($accountId)) {
+            $seller->update(['stripe_account_id' => $accountId]);
+        } elseif (empty($seller->stripe_account_id)) {
+            // Attempt to create a real Stripe Express connected account
+            $user = $request->user();
+            $createdId = $stripeService->createExpressAccount(
+                $user->email ?? "seller_{$seller->id}@example.com",
+                'US'
+            );
+
+            if ($createdId) {
+                $seller->update(['stripe_account_id' => $createdId]);
+                $accountId = $createdId;
+            } else {
+                // If Connect is not enabled on the Stripe account, fallback to local test account ID
+                $fallbackId = 'acct_connect_'.Str::random(16);
+                $seller->update(['stripe_account_id' => $fallbackId]);
+                $accountId = $fallbackId;
+            }
+        } else {
+            $accountId = $seller->stripe_account_id;
+        }
+
+        // Try to generate an onboarding URL if it's a real connected account
+        if ($accountId && str_starts_with($accountId, 'acct_') && ! str_contains($accountId, '_demo') && ! str_contains($accountId, '_connect_')) {
+            $frontendUrl = rtrim(config('app.url', 'http://localhost:8000'), '/');
+            $onboardingUrl = $stripeService->createAccountLink(
+                $accountId,
+                "{$frontendUrl}/seller",
+                "{$frontendUrl}/seller"
+            );
+        }
 
         return response()->json([
             'message' => 'Stripe Connect payout account configured.',
             'stripe_account_id' => $seller->stripe_account_id,
+            'onboarding_url' => $onboardingUrl,
             'payout_ready' => true,
         ]);
     }

@@ -23,7 +23,7 @@ class OrderResource extends JsonResource
             'order_number' => $this->order_number,
             'status' => $this->status,
             'total_amount' => $this->total_amount,
-            'formatted_total' => '$'.$this->formatted_total,
+            'formatted_total' => '₱'.$this->formatted_total,
             'currency' => $this->currency,
             'customer_email' => $this->customer_email,
             'customer_name' => $this->customer_name,

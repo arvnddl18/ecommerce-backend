@@ -173,6 +173,9 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onBackToStore 
         if (seller) {
           setSeller({ ...seller, stripe_account_id: data.stripe_account_id });
         }
+        if (data.onboarding_url) {
+          window.open(data.onboarding_url, '_blank');
+        }
       }
     } catch (err) {
       console.error('Payout setup failed', err);
@@ -271,7 +274,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onBackToStore 
                     <DollarSign className="w-4 h-4 text-[#2E7D5B]" />
                   </div>
                   <div className="text-2xl font-serif font-bold text-[#1A1A1A]">
-                    {stats?.formatted_revenue || '$0.00'}
+                    {stats?.formatted_revenue || '₱0.00'}
                   </div>
                   <span className="text-[11px] text-[#6B6B6B] mt-1 block">Live Stripe Connect earnings</span>
                 </div>
@@ -375,7 +378,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onBackToStore 
 
                       <div className="flex items-center gap-3">
                         <span className="font-mono text-sm font-bold text-[#1A1A1A]">
-                          ${(p.price / 100).toFixed(2)}
+                          ₱{(p.price / 100).toFixed(2)}
                         </span>
 
                         <button
@@ -431,7 +434,7 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onBackToStore 
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-mono text-[#6B6B6B] mb-1">Price (Cents)</label>
+                      <label className="block text-xs font-mono text-[#6B6B6B] mb-1">Price (Centavos)</label>
                       <input
                         type="number"
                         value={editingProduct.price}
@@ -504,6 +507,15 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onBackToStore 
                           </span>
                           <span
                             className={`px-2 py-0.5 text-[10px] font-mono uppercase ${
+                              order.order_status === 'paid'
+                                ? 'bg-emerald-50 text-[#2E7D5B] border border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}
+                          >
+                            {order.order_status === 'paid' ? 'Payment Confirmed' : 'Payment Pending'}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 text-[10px] font-mono uppercase ${
                               order.fulfillment_status === 'shipped'
                                 ? 'bg-emerald-50 text-[#2E7D5B] border border-emerald-200'
                                 : 'bg-[#FFF5F2] text-[#FF5A36] border border-[#FF5A36]/30'
@@ -528,7 +540,11 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onBackToStore 
                           <div className="text-[10px] text-[#6B6B6B]">{order.created_at}</div>
                         </div>
 
-                        {order.fulfillment_status !== 'shipped' && (
+                        {order.order_status !== 'paid' ? (
+                          <span className="px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200">
+                            Awaiting Payment
+                          </span>
+                        ) : order.fulfillment_status !== 'shipped' && (
                           <button
                             type="button"
                             onClick={() => handleUpdateFulfillment(order.id, 'shipped')}

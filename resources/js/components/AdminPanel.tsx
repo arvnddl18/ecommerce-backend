@@ -143,7 +143,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                     Gross Merchandise Value
                   </div>
                   <div className="text-2xl font-serif font-bold text-[#1A1A1A]">
-                    {overview?.formatted_gmv || '$0.00'}
+                    {overview?.formatted_gmv || '₱0.00'}
                   </div>
                   <span className="text-[11px] text-[#6B6B6B] mt-1 block">Total platform volume</span>
                 </div>
@@ -195,7 +195,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBackToStore }) => {
                       </div>
                       <div className="text-right">
                         <span className="font-mono font-bold text-[#1A1A1A] block">
-                          ${(order.total_amount / 100).toFixed(2)}
+                          ₱{(order.total_amount / 100).toFixed(2)}
                         </span>
                         <span className="text-[10px] font-mono uppercase text-[#2E7D5B]">
                           {order.status}

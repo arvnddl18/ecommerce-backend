@@ -34,12 +34,12 @@
                     </div>
                 @endif
             </div>
-            <div>${{ number_format($item->total_price / 100, 2) }}</div>
+            <div>₱{{ number_format($item->total_price / 100, 2) }}</div>
         </div>
     @endforeach
 
     <div class="total-box">
-        Total: ${{ number_format($order->total_amount / 100, 2) }}
+        Total: ₱{{ number_format($order->total_amount / 100, 2) }}
     </div>
 
     <p style="margin-top: 32px; font-size: 12px; color: #8C827A;">

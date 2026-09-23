@@ -11,6 +11,7 @@ interface NavbarProps {
   wishlistCount: number;
   onOpenWishlist: () => void;
   onOpenOrders?: () => void;
+  onNavigateHome?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -21,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   wishlistCount,
   onOpenWishlist,
   onOpenOrders,
+  onNavigateHome,
 }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const { cart, setIsCartOpen } = useCart();
@@ -36,6 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => {
               onSelectCategory(null);
               onChangeSurface('storefront');
+              if (onNavigateHome) onNavigateHome();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="wordmark bg-transparent border-0 cursor-pointer text-left select-none text-[#1A1A1A]"
@@ -62,6 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={() => {
                   onSelectCategory(null);
+                  if (onNavigateHome) onNavigateHome();
                   const el = document.getElementById('products');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
@@ -73,6 +77,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={() => {
                   onSelectCategory(null);
+                  if (onNavigateHome) onNavigateHome();
                   const el = document.getElementById('products');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
