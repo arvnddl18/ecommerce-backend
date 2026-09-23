@@ -1,8 +1,8 @@
 # Current State
 
-Status: VERIFIED (Full Multi-Vendor Apparel Marketplace Operational)
+Status: VERIFIED (Local Marketplace Codebase) · PROPOSED (Cloud Hosting & Infrastructure Target)
 Last Updated: 2026-09-23
-Tags: #current-state #roadmap #marketplace #verified
+Tags: #current-state #roadmap #marketplace #verified #proposed
 
 ## 🎯 Active Focus
 - **Completed Front-End UI/UX Remake:** Fully implemented **"The Rail & The Rack"** design system across all React components, adhering to the bespoke boutique aesthetic and class hierarchy in `references/style.css`.
@@ -18,20 +18,32 @@ Tags: #current-state #roadmap #marketplace #verified
 2. **Multi-Role User & 16+ Compliance System:**
    - User roles: `buyer`, `seller`, `admin`.
    - Age verification flag (`age_verified`) enforced during registration with mandatory 16+ checkbox.
+   - Strict role-based interface isolation ([[ADR-009_Role_Based_Interface_Isolation]]) preventing simultaneous leakage of merchant/admin routes into shopper views.
    - Automatic `seller_profiles` generation upon seller signup.
 3. **Apparel Catalog & Product Variants:**
    - Multi-variant modeling (`product_variants`) with explicit `size`, `color`, `sku`, `stock_quantity`, and optional `price_override`.
+   - Variant-specific cart keys (`{productId}_{variantId}`) and inventory validation in `CartService`.
+   - Above-the-fold catalog grid and immediate purchase urgency (`ShopHeading` and 4-column layout in [[ADR-010_Above_The_Fold_Product_Grid_and_Immediate_Purchase_Urgency]]).
    - Multi-photo galleries (`product_images`) with primary image flag and sort ordering.
    - Verified buyer reviews (`reviews` table checking purchase in completed `order_items`).
    - Wishlists and user address book.
-4. **Multi-Vendor Payments & Settlement:**
+   - Buyer past order history tracking modal (`BuyerOrderHistoryModal.tsx`) with verified review shortcuts.
+   - Seller product lifecycle management (`SellerDashboard.tsx` Cuts & Inventory tab) with edit/archive actions.
+4. **Multi-Vendor Payments, Transfers, Coupons & Restocking:**
    - Stripe Connect transfer group integration (`transfer_group = ORDER_{number}`) on Checkout sessions.
+   - Real automated Stripe Connect transfers (`\Stripe\Transfer::create`) disbursing 90% net revenue to sellers after 10% platform fee.
+   - Transactional email notifications via Redis queue (`OrderConfirmationMail`, `SellerOrderNotificationMail`).
    - Denormalized `seller_id` and individual `fulfillment_status` on `order_items` for independent line-item tracking.
-   - Merchant payout configuration endpoint (`/api/v1/seller/payout-setup`).
-5. **Quality & Validation Status:**
-   - **PHPUnit Feature Tests:** 37 passing tests (152 assertions, 0 failures).
+   - Atomic inventory deduction for both base products and variants on successful webhook handling (`ProcessStripeWebhookJob`).
+   - Admin category tree CRUD and user suspension moderation (`AdminController.php`).
+   - Admin order refund pipeline (`POST /api/v1/admin/orders/{order}/refund`) with Stripe Refund and atomic inventory restoration.
+   - Promotional coupon/voucher engine (`coupons` table, `Coupon` model, Cart & Checkout discount computation).
+   - Direct seller media upload (`POST /api/v1/seller/media/upload`) and autocomplete product suggestions (`GET /api/v1/products/suggestions`).
+5. **Quality & Validation Status (100% True Verification):**
+   - **PHPUnit Feature Tests:** 74 passing tests (292 assertions, 0 failures).
    - **Laravel Pint:** 100% PSR-12 styling compliance.
-   - **Vite & TypeScript:** Clean build output (`npm run build` passing in 3.12s).
+   - **Larastan Static Analysis:** 0 errors at level 5 with full memory allocation.
+   - **Vite & TypeScript:** Clean build output (`npm run build`, 3.30s).
 
 ## 🛑 Active Blockers
 - None. System is completely green and ready for local development, Docker deployment, or production cloud shipping.
@@ -52,3 +64,6 @@ Tags: #current-state #roadmap #marketplace #verified
 - [[System_Architecture]]
 - [[ADR-006_Stripe_Connect_for_Multi_Seller_Payouts]]
 - [[ADR-007_Framer_Motion_and_Swiper_for_Frontend_Experience]]
+- [[ADR-008_The_Rail_and_The_Rack_Storefront_Design_System]]
+- [[ADR-009_Role_Based_Interface_Isolation]]
+- [[ADR-010_Above_The_Fold_Product_Grid_and_Immediate_Purchase_Urgency]]

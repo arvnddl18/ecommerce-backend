@@ -8,6 +8,7 @@ use App\Http\Resources\Api\v1\OrderResource;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Services\CartService;
 use App\Services\StripeService;
 use Illuminate\Http\JsonResponse;
@@ -47,9 +48,29 @@ class CheckoutController extends Controller
         // Validate stock availability
         foreach ($cart['items'] as $item) {
             $product = Product::find($item['product_id']);
-            if (! $product || $product->stock < $item['quantity']) {
+            if (! $product) {
                 throw ValidationException::withMessages([
-                    'stock' => "Product '{$item['name']}' only has {$product?->stock} units left.",
+                    'stock' => "Product '{$item['name']}' is no longer available.",
+                ]);
+            }
+
+            if (! empty($item['variant_id'])) {
+                $variant = ProductVariant::find($item['variant_id']);
+                if (! $variant) {
+                    throw ValidationException::withMessages([
+                        'stock' => "Product variant '{$item['name']}' is no longer available.",
+                    ]);
+                }
+
+                if ($variant->stock_quantity < $item['quantity']) {
+                    $variantLabel = ($item['size'] ?? '').' / '.($item['color'] ?? '');
+                    throw ValidationException::withMessages([
+                        'stock' => "Product '{$item['name']}' ({$variantLabel}) only has {$variant->stock_quantity} units left.",
+                    ]);
+                }
+            } elseif ($product->stock < $item['quantity']) {
+                throw ValidationException::withMessages([
+                    'stock' => "Product '{$item['name']}' only has {$product->stock} units left.",
                 ]);
             }
         }
@@ -60,25 +81,41 @@ class CheckoutController extends Controller
 
         $order = DB::transaction(function () use ($validated, $user, $cart): Order {
             $orderNumber = 'ORD-'.strtoupper(Str::random(10));
+            $subtotal = $cart['subtotal'];
+            $discount = $cart['discount'];
+            $totalAmount = max(0, $subtotal - $discount);
 
             $order = Order::create([
                 'user_id' => $user?->id,
                 'order_number' => $orderNumber,
                 'status' => Order::STATUS_PENDING,
-                'total_amount' => $cart['subtotal'],
+                'total_amount' => $totalAmount,
                 'currency' => config('services.stripe.currency', 'usd'),
                 'customer_email' => $validated['customer_email'],
                 'customer_name' => $validated['customer_name'] ?? $user?->name,
                 'shipping_address' => $validated['shipping_address'] ?? null,
+                'metadata' => [
+                    'coupon_code' => $cart['coupon']['code'] ?? null,
+                    'discount_amount' => $discount,
+                    'subtotal' => $subtotal,
+                ],
             ]);
 
             foreach ($cart['items'] as $item) {
                 $product = Product::find($item['product_id']);
+                $variantDetails = $item['variant_details'] ?? null;
+                $productDisplayName = $item['name'];
+                if (! empty($item['size']) || ! empty($item['color'])) {
+                    $productDisplayName .= ' ('.implode(' / ', array_filter([$item['size'] ?? '', $item['color'] ?? ''])).')';
+                }
+
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $item['product_id'],
                     'seller_id' => $product?->seller_id,
-                    'product_name' => $item['name'],
+                    'variant_id' => $item['variant_id'] ?? null,
+                    'variant_details' => $variantDetails,
+                    'product_name' => $productDisplayName,
                     'unit_price' => $item['price'],
                     'quantity' => $item['quantity'],
                     'total_price' => $item['total'],

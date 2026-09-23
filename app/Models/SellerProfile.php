@@ -20,6 +20,9 @@ class SellerProfile extends Model
         'slug',
         'verification_status',
         'stripe_account_id',
+        'total_sales',
+        'payout_method',
+        'rating',
         'bio',
         'logo_url',
     ];

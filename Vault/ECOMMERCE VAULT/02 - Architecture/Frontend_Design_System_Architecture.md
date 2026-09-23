@@ -30,18 +30,15 @@ graph TD
     end
     
     subgraph NavigationLayer["Header & Rail Navigation"]
-        Nav["Navbar.tsx (Minimal Wordmark & Surface Switcher)"]
-        Intro["EditorialIntro.tsx (Left-Aligned Kicker & Clamp Headline)"]
-        Rail["RackRailNav.tsx (Horizontal Sticky Garment Rail)"]
+        Nav["Navbar.tsx (Wordmark & Navigation)"]
+        Heading["ShopHeading.tsx (Compact Eyebrow, Headline & Sort)"]
+        Rail["RackRailNav.tsx (Horizontal Sticky Category Rail)"]
     end
     
-    subgraph CatalogLayer["Asymmetric Editorial Catalog"]
-        Grid["ProductGrid.tsx (Asymmetric 1.15fr / 0.85fr Grid)"]
-        Card0["ProductCard (feature-card: aspect 0.86)"]
-        Card1["ProductCard (simple-card: aspect 0.87, +100px)"]
-        Card2["ProductCard (offset-card: -50px)"]
-        Card3["ProductCard (wide-card: aspect 1.32, +20px)"]
-        Story["StorySection (3-Column Atelier Philosophy & Circle Link)"]
+    subgraph CatalogLayer["Immediate Above-the-Fold Catalog"]
+        Grid["ProductGrid.tsx (4-Column repeat(4, 1fr) Grid)"]
+        Cards["ProductCard (aspect 0.78, hover slide-up + Quick Add, star ratings)"]
+        Story["StorySection (Atelier Philosophy & Circular Link)"]
     end
     
     subgraph InspectionLayer["Two-Zone Product Inspection"]
@@ -176,6 +173,8 @@ The frontend strictly enforces the avoidance of the 8 common AI-generated templa
 - [[CORE_MEMORY]]
 - [[System_Architecture]]
 - [[ADR-008_The_Rail_and_The_Rack_Storefront_Design_System]]
+- [[ADR-009_Role_Based_Interface_Isolation]]
+- [[ADR-010_Above_The_Fold_Product_Grid_and_Immediate_Purchase_Urgency]]
 - [[ADR-007_Framer_Motion_and_Swiper_for_Frontend_Experience]]
 - [[Developer_and_System_Preferences]]
 - [[CURRENT_STATE]]

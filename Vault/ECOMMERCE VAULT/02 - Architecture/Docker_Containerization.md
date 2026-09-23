@@ -1,8 +1,11 @@
 # Docker Containerization
 
-Status: VERIFIED
+Status: VERIFIED (Docker Compose & Dockerfile Specs) · Local Runtime uses native PHP / SQLite
 Last Updated: 2026-09-23
-Tags: #architecture #docker #devops
+Tags: #architecture #docker #devops #verified
+
+> [!NOTE]
+> The Docker container specs (`docker-compose.yml`, `docker-compose.prod.yml`, `docker/php/Dockerfile.prod`) are fully defined. Active local development can run either within Docker Compose or natively on Windows using `php artisan serve` and `npm run dev` against local SQLite.
 
 ## 1. Multi-Container Composition
 The stack is partitioned into discrete services running on an internal Docker bridge network (`ecommerce_network`).

@@ -1,8 +1,11 @@
 # PostgreSQL JSONB and Indexing
 
-Status: VERIFIED
+Status: PROPOSED (Production Architecture Reference)
 Last Updated: 2026-09-23
-Tags: #knowledge #database #postgresql
+Tags: #knowledge #database #postgresql #proposed
+
+> [!IMPORTANT]
+> **Active Codebase Reality:** The local environment currently runs on **SQLite** (`database/database.sqlite`), where migrations use standard `$table->json(...)` without GIN indexes. This note documents the target PostgreSQL schema optimization for production containerization.
 
 ## 1. Why JSONB in E-Commerce
 PostgreSQL's `jsonb` type stores parsed binary JSON, which supports:

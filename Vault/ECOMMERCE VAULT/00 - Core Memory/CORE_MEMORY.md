@@ -11,20 +11,18 @@ Author: Arvin
 
 ## Current State
 - Active feature: Multi-Vendor Apparel Marketplace with Storefront, Seller Studio, and Admin Command Center operational.
-- Current development phase: Production Ready — Features, tests, and assets verified.
-- Important blockers: None. 37 automated PHPUnit feature tests passing (152 assertions), Pint formatted, Larastan clean, Vite production bundle compiled.
+- Current development phase: Fully Verified Local Codebase — 74 automated PHPUnit feature tests passing (292 assertions, 0 failures), Pint formatted, Larastan clean, Vite production bundle compiled.
+- Important blockers: None.
 
 ## Technology
-- Backend: Laravel 11, PHP 8.3 / 8.4, Laravel Sanctum (API Tokens), Laravel Boost (Agentic tooling)
+- Backend: Laravel 11, PHP 8.4, Laravel Sanctum (API Tokens), Laravel Boost
 - Frontend: React 18, TypeScript, Vite, Tailwind CSS (Three unified surfaces: Storefront, Seller Dashboard, Admin Panel)
-- UI Animation & Motion: Framer Motion (micro-interactions, page transitions, shimmers) + Swiper.js (touch-friendly carousels and zoom) ([[ADR-007_Framer_Motion_and_Swiper_for_Frontend_Experience]])
-- Primary Database: PostgreSQL 16 Alpine (Relational persistent storage, JSONB columns, variant matrix)
-- Cache & Queue Broker: Redis 7 Alpine (Sessions, cache-aside, asynchronous queue worker)
-- Web Server & Reverse Proxy: Nginx Stable Alpine (Port 80/443, FastCGI to PHP-FPM :9000, Gzip, static asset caching)
-- Containerization: Docker, Docker Compose (multi-stage builds, non-root user, OPcache enabled)
+- UI Animation & Motion: Framer Motion + Swiper.js ([[ADR-007_Framer_Motion_and_Swiper_for_Frontend_Experience]])
+- Active Local Runtime: SQLite (`database/database.sqlite`), Sync queue driver, Log mail driver
+- Production Target Spec: PostgreSQL 16 Alpine, Redis 7 Alpine, Nginx Stable Alpine, Multi-stage Docker ([[ADR-002_PostgreSQL_16_over_MySQL]], [[ADR-003_Redis_for_Caching_Sessions_and_Queues]], [[ADR-004_Multi_Stage_Docker_Builds_for_Production]])
 - Payment Gateway: Stripe Connect (multi-seller payout splitting, vendor connected accounts) & Webhooks ([[ADR-006_Stripe_Connect_for_Multi_Seller_Payouts]])
-- Infrastructure / Hosting: Oracle Cloud Infrastructure (OCI) Always-Free Tier, Cloudflare (CDN, SSL, DDoS protection)
-- CI/CD: GitHub Actions (Lint with Pint/Larastan, PHPUnit test suites, GHCR Docker image publishing)
+- Cloud Hosting Blueprint: Oracle Cloud Infrastructure (OCI) Always-Free Tier, Cloudflare (Proposed Target, [[ADR-005_Oracle_Cloud_Always_Free_Hosting]])
+- CI/CD: GitHub Actions (Lint with Pint/Larastan, PHPUnit test suites against Postgres/Redis service containers, GHCR Docker image publishing)
 
 ## Architecture
 - Key architectural decisions:
@@ -56,7 +54,8 @@ Author: Arvin
 - Frictionless checkout completable in 3 steps or fewer.
 - Ethical psychological purchase triggers (accurate scarcity counters, verified social proof).
 - Strict separation of motion tools: Framer Motion for micro-interactions, Swiper.js for carousels.
-- Boutique editorial aesthetic: "The Rail & The Rack" design system rejecting AI-generated template clichés ([[Frontend_Design_System_Architecture]], [[ADR-008_The_Rail_and_The_Rack_Storefront_Design_System]]).
+- Strict role-based interface isolation: Storefront (Buyer), Seller Studio (Merchant), and Admin Panel (Oversight) are strictly decoupled and never displayed concurrently in the main navigation.
+- Boutique editorial aesthetic: "The Rail & The Rack" design system rejecting AI-generated template clichés ([[Frontend_Design_System_Architecture]], [[ADR-008_The_Rail_and_The_Rack_Storefront_Design_System]], [[ADR-009_Role_Based_Interface_Isolation]]).
 
 ## Critical Decisions & Architecture
 - [[ADR-001_Laravel_11_Headless_REST_API]]
@@ -67,5 +66,7 @@ Author: Arvin
 - [[ADR-006_Stripe_Connect_for_Multi_Seller_Payouts]]
 - [[ADR-007_Framer_Motion_and_Swiper_for_Frontend_Experience]]
 - [[ADR-008_The_Rail_and_The_Rack_Storefront_Design_System]]
+- [[ADR-009_Role_Based_Interface_Isolation]]
+- [[ADR-010_Above_The_Fold_Product_Grid_and_Immediate_Purchase_Urgency]]
 - [[Frontend_Design_System_Architecture]]
 - [[Apparel_Marketplace_Requirements_and_Design_Plan]]

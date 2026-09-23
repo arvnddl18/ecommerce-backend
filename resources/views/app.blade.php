@@ -6,16 +6,16 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- SEO Meta Tags -->
-    <title>MAISON COLLECTIVE — Multi-Vendor Apparel Archive</title>
-    <meta name="description" content="Discover curated garments, functional outerwear, and bespoke essentials from verified independent apparel ateliers.">
-    <meta name="keywords" content="apparel marketplace, boutique, fashion archive, multi-vendor, stripe connect, independent ateliers">
+    <title>FOLD. — Shop clothing</title>
+    <meta name="description" content="A quietly confident collection of everyday apparel made to move with you. Curated independent labels from around the world.">
+    <meta name="keywords" content="clothing, shop clothing, fashion archive, independent labels, curated apparel">
     <meta name="robots" content="index, follow">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ url('/') }}">
-    <meta property="og:title" content="MAISON COLLECTIVE — Multi-Vendor Apparel Archive">
-    <meta property="og:description" content="Curated apparel and footwear from independent verified ateliers with atomic Stripe Connect checkout.">
+    <meta property="og:title" content="FOLD. — Shop clothing">
+    <meta property="og:description" content="Fresh pieces, ready to wear. Updated weekly with curated independent labels.">
     <meta property="og:image" content="https://images.unsplash.com/photo-1544957992-20514f595d6f?w=1200&q=80">
 
     <!-- Twitter Cards -->

@@ -6,12 +6,19 @@ import { modalEntranceVariants } from '../lib/motion';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialRole?: 'buyer' | 'seller';
+  initialMode?: 'login' | 'register';
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({
+  isOpen,
+  onClose,
+  initialRole = 'buyer',
+  initialMode = 'login',
+}) => {
   const { login, register } = useAuth();
-  const [isRegister, setIsRegister] = useState(false);
-  const [role, setRole] = useState<'buyer' | 'seller'>('buyer');
+  const [isRegister, setIsRegister] = useState(initialMode === 'register');
+  const [role, setRole] = useState<'buyer' | 'seller'>(initialRole);
   const [name, setName] = useState('');
   const [storeName, setStoreName] = useState('');
   const [email, setEmail] = useState('');
@@ -19,6 +26,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [ageAcknowledged, setAgeAcknowledged] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setIsRegister(initialMode === 'register');
+      setRole(initialRole);
+      setError(null);
+    }
+  }, [isOpen, initialMode, initialRole]);
 
   if (!isOpen) return null;
 

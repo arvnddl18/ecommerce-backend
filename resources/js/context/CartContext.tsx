@@ -7,11 +7,13 @@ interface CartContextType {
   isLoading: boolean;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
-  addToCart: (productId: number, quantity?: number) => Promise<void>;
-  updateQuantity: (productId: number, quantity: number) => Promise<void>;
-  removeFromCart: (productId: number) => Promise<void>;
+  addToCart: (productId: number, quantity?: number, variantId?: number | null) => Promise<void>;
+  updateQuantity: (itemKeyOrProductId: string | number, quantity: number) => Promise<void>;
+  removeFromCart: (itemKeyOrProductId: string | number) => Promise<void>;
   clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
+  applyCoupon: (code: string) => Promise<void>;
+  removeCoupon: () => Promise<void>;
 }
 
 const initialCart: CartData = {
@@ -76,13 +78,18 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshCart();
   }, [refreshCart]);
 
-  const addToCart = async (productId: number, quantity: number = 1) => {
+  const addToCart = async (productId: number, quantity: number = 1, variantId: number | null = null) => {
     setIsLoading(true);
     try {
+      const payload: Record<string, any> = { product_id: productId, quantity };
+      if (variantId !== null && variantId !== undefined) {
+        payload.variant_id = variantId;
+      }
+
       const res = await fetch('/api/v1/cart/items', {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ product_id: productId, quantity }),
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();
@@ -97,9 +104,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateQuantity = async (productId: number, quantity: number) => {
+  const updateQuantity = async (itemKeyOrProductId: string | number, quantity: number) => {
     try {
-      const res = await fetch(`/api/v1/cart/items/${productId}`, {
+      const res = await fetch(`/api/v1/cart/items/${itemKeyOrProductId}`, {
         method: 'PUT',
         headers: getHeaders(),
         body: JSON.stringify({ quantity }),
@@ -116,9 +123,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const removeFromCart = async (productId: number) => {
+  const removeFromCart = async (itemKeyOrProductId: string | number) => {
     try {
-      const res = await fetch(`/api/v1/cart/items/${productId}`, {
+      const res = await fetch(`/api/v1/cart/items/${itemKeyOrProductId}`, {
         method: 'DELETE',
         headers: getHeaders(),
       });
@@ -148,6 +155,43 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const applyCoupon = async (code: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/v1/cart/coupon', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ code }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.message || 'Failed to apply coupon');
+      }
+
+      setCart(json.data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const removeCoupon = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/v1/cart/coupon', {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+
+      const json = await res.json();
+      if (res.ok) {
+        setCart(json.data);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -160,6 +204,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         removeFromCart,
         clearCart,
         refreshCart,
+        applyCoupon,
+        removeCoupon,
       }}
     >
       {children}

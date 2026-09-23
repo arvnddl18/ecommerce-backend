@@ -1,18 +1,18 @@
 # Non-Functional Requirements
 
-Status: PROPOSED / CONSOLIDATED
+Status: VERIFIED (Security & Accessibility Standards) · OPERATIONAL TARGETS (Latency & Uptime SLA)
 Last Updated: 2026-09-23
-Tags: #requirements #specs #security #performance #accessibility
+Tags: #requirements #specs #security #performance #accessibility #calibrated
 
-## 1. Performance & Latency
-- Product pages and category listings load under 2 seconds on mobile 4G networks.
+## 1. Performance & Latency (Target SLAs)
+- Product pages and category listings load under 2 seconds on mobile 4G networks (Target SLA).
 - Checkout flow completes smoothly without noticeable lag.
-- Sub-50ms API response time for cached catalog and session verification requests.
-- Sub-5s webhook response time to Stripe endpoints to prevent retry storms.
+- Sub-50ms API response time for cached catalog and session verification requests under Redis caching (Target SLA).
+- Sub-5s webhook response time to Stripe endpoints to prevent retry storms (Verified: webhook controller returns immediate 200 OK after dispatching job).
 
-## 2. Scalability & Availability
-- Stateless application layer horizontally scalable via container replication behind Nginx reverse proxy.
-- Target 99.5%+ uptime for portfolio-grade production deployment.
+## 2. Scalability & Availability (Target Architecture)
+- Stateless application layer horizontally scalable via container replication behind Nginx reverse proxy (Docker Production Spec).
+- Target 99.5%+ uptime for production deployment (Operational Objective).
 
 ## 3. Security, Privacy & Compliance
 - **Zero Raw Cardholder Data:** Server never touches raw card numbers; full PCI compliance delegated to Stripe Elements / Stripe Connect.

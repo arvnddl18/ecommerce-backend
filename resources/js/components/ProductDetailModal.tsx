@@ -59,7 +59,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     if (!inStock || isAdding) return;
     try {
       setIsAdding(true);
-      await addToCart(product.id, quantity);
+      await addToCart(product.id, quantity, selectedVariant?.id);
       if (openDrawer) {
         onClose();
         setIsCartOpen(true);

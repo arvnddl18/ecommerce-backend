@@ -1,8 +1,11 @@
 # Redis Queues and Worker Architecture
 
-Status: VERIFIED
+Status: PROPOSED (Docker / Production Spec) · SYNC (Local Runtime)
 Last Updated: 2026-09-23
-Tags: #knowledge #redis #queues #architecture
+Tags: #knowledge #redis #queues #architecture #proposed
+
+> [!NOTE]
+> **Active Codebase Reality:** In local development, `.env` configures `QUEUE_CONNECTION=sync` and `SESSION_DRIVER=file` for zero-dependency execution. Asynchronous Redis queue workers are defined in `docker-compose.yml` and GitHub Actions CI.
 
 ## 1. Asynchronous Queue Architecture
 In high-throughput e-commerce, long-running operations must never block HTTP request lifecycles.

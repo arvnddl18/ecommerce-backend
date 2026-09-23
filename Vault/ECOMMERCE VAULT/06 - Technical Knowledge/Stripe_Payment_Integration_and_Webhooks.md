@@ -1,8 +1,8 @@
 # Stripe Payment Integration and Webhooks
 
-Status: VERIFIED
+Status: VERIFIED (Webhook Signature & Job Dispatch) · Spec (Redis Worker)
 Last Updated: 2026-09-23
-Tags: #knowledge #stripe #payments #security
+Tags: #knowledge #stripe #payments #security #calibrated
 
 ## 1. Webhook Signature Verification in Laravel
 When receiving incoming Stripe webhook payloads at `/api/v1/webhooks/stripe`, Stripe sends a signature in the `Stripe-Signature` HTTP header.
@@ -25,7 +25,7 @@ try {
     return response()->json(['error' => 'Invalid signature'], 400);
 }
 
-// Dispatch to Redis queue worker
+// Dispatch to queue worker (synchronous locally via QUEUE_CONNECTION=sync, Redis in Docker/production)
 ProcessStripeWebhookJob::dispatch($event->toArray());
 
 return response()->json(['status' => 'success']);

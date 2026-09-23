@@ -66,8 +66,9 @@ export interface Product {
 }
 
 export interface CartItem {
+  item_key?: string;
   product_id: number;
-  variant_id?: number;
+  variant_id?: number | null;
   size?: string;
   color?: string;
   name: string;
@@ -82,11 +83,24 @@ export interface CartItem {
   image: string | null;
 }
 
+export interface CartCoupon {
+  code: string;
+  discount_percent?: number | null;
+  discount_amount?: number | null;
+  calculated_discount: number;
+  formatted_discount: string;
+}
+
 export interface CartData {
   items: CartItem[];
   total_quantity: number;
   subtotal: number; // in cents
   formatted_subtotal: string;
+  coupon?: CartCoupon | null;
+  discount?: number;
+  formatted_discount?: string;
+  total?: number;
+  formatted_total?: string;
 }
 
 export interface User {

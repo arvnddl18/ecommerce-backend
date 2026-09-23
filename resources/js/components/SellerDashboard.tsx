@@ -31,10 +31,12 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onBackToStore 
   const [seller, setSeller] = useState<SellerProfileData | null>(null);
   const [lowStockAlerts, setLowStockAlerts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [sellerProducts, setSellerProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'payouts'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'payouts'>('overview');
   const [isUpdatingOrder, setIsUpdatingOrder] = useState<number | null>(null);
   const [payoutSuccess, setPayoutSuccess] = useState<string | null>(null);
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -61,10 +63,68 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onBackToStore 
         const ordersData = await ordersRes.json();
         setOrders(ordersData.data || []);
       }
+
+      const productsRes = await fetch('/api/v1/seller/products', { headers });
+      if (productsRes.ok) {
+        const productsData = await productsRes.json();
+        setSellerProducts(productsData.data || []);
+      }
     } catch (err) {
       console.error('Failed to load seller dashboard', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleArchiveProduct = async (productId: number) => {
+    if (!confirm('Are you sure you want to archive this garment cut?')) return;
+    try {
+      const res = await fetch(`/api/v1/seller/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        setSellerProducts((prev) =>
+          prev.map((p) => (p.id === productId ? { ...p, status: 'archived', is_active: false } : p))
+        );
+      }
+    } catch (err) {
+      console.error('Failed to archive product', err);
+    }
+  };
+
+  const handleSaveProductEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    try {
+      const res = await fetch(`/api/v1/seller/products/${editingProduct.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: editingProduct.name,
+          price: parseInt(editingProduct.price, 10),
+          stock: parseInt(editingProduct.stock, 10),
+          description: editingProduct.description,
+        }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setSellerProducts((prev) =>
+          prev.map((p) => (p.id === editingProduct.id ? updated.product : p))
+        );
+        setEditingProduct(null);
+      }
+    } catch (err) {
+      console.error('Failed to update product', err);
     }
   };
 
@@ -157,6 +217,16 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onBackToStore 
             }`}
           >
             Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('products')}
+            className={`px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+              activeTab === 'products'
+                ? 'bg-[#1A1A1A] text-white'
+                : 'text-[#6B6B6B] hover:text-[#1A1A1A]'
+            }`}
+          >
+            Cuts & Inventory
           </button>
           <button
             onClick={() => setActiveTab('orders')}
@@ -265,6 +335,151 @@ export const SellerDashboard: React.FC<SellerDashboardProps> = ({ onBackToStore 
                 </div>
               )}
             </motion.div>
+          )}
+
+          {/* TAB: CUTS & INVENTORY */}
+          {activeTab === 'products' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-serif font-medium text-[#1A1A1A]">Atelier Garment Cuts</h2>
+                  <p className="text-xs text-[#6B6B6B] mt-0.5">Manage live silhouettes, adjust prices, edit inventory or archive items.</p>
+                </div>
+              </div>
+
+              {sellerProducts.length === 0 ? (
+                <div className="py-16 text-center bg-white border border-[#E8E6E1] text-[#6B6B6B] text-xs">
+                  No products currently cataloged.
+                </div>
+              ) : (
+                <div className="border border-[#E8E6E1] bg-white divide-y divide-[#E8E6E1]">
+                  {sellerProducts.map((p) => (
+                    <div key={p.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-['Space_Grotesk'] font-bold text-sm text-[#1A1A1A]">{p.name}</h4>
+                          <span
+                            className={`px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wider rounded-sm ${
+                              p.status === 'active'
+                                ? 'bg-emerald-50 text-[#2E7D5B] border border-emerald-200'
+                                : 'bg-neutral-100 text-neutral-500 border border-neutral-200'
+                            }`}
+                          >
+                            {p.status}
+                          </span>
+                        </div>
+                        <div className="text-xs text-[#6B6B6B] mt-1 font-mono">
+                          SKU: {p.sku} · Base Stock: {p.stock} units · {p.variants?.length || 0} variants
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-sm font-bold text-[#1A1A1A]">
+                          ${(p.price / 100).toFixed(2)}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => setEditingProduct({ ...p })}
+                          className="px-2.5 py-1 text-xs font-mono border border-[#E8E6E1] text-[#1A1A1A] hover:border-[#1A1A1A] transition-colors"
+                        >
+                          Edit
+                        </button>
+
+                        {p.status !== 'archived' && (
+                          <button
+                            type="button"
+                            onClick={() => handleArchiveProduct(p.id)}
+                            className="px-2.5 py-1 text-xs font-mono text-[#D14343] hover:underline"
+                          >
+                            Archive
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* EDIT PRODUCT MODAL */}
+          {editingProduct && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <div className="relative w-full max-w-lg bg-[#FAFAF8] text-[#1A1A1A] border border-[#E8E6E1] p-6 shadow-2xl">
+                <div className="flex items-center justify-between pb-4 border-b border-[#E8E6E1] mb-4">
+                  <h3 className="font-['Space_Grotesk'] font-bold text-base">Edit Garment: {editingProduct.name}</h3>
+                  <button
+                    onClick={() => setEditingProduct(null)}
+                    className="text-[#6B6B6B] hover:text-[#1A1A1A] font-mono text-sm"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveProductEdit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-mono text-[#6B6B6B] mb-1">Product Title</label>
+                    <input
+                      type="text"
+                      value={editingProduct.name}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                      className="w-full px-3 py-2 text-sm bg-white border border-[#E8E6E1] focus:border-[#1A1A1A] outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-mono text-[#6B6B6B] mb-1">Price (Cents)</label>
+                      <input
+                        type="number"
+                        value={editingProduct.price}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#E8E6E1] focus:border-[#1A1A1A] outline-none"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono text-[#6B6B6B] mb-1">Stock Quantity</label>
+                      <input
+                        type="number"
+                        value={editingProduct.stock}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, stock: e.target.value })}
+                        className="w-full px-3 py-2 text-sm bg-white border border-[#E8E6E1] focus:border-[#1A1A1A] outline-none"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-mono text-[#6B6B6B] mb-1">Description</label>
+                    <textarea
+                      value={editingProduct.description || ''}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm bg-white border border-[#E8E6E1] focus:border-[#1A1A1A] outline-none"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-3 border-t border-[#E8E6E1]">
+                    <button
+                      type="button"
+                      onClick={() => setEditingProduct(null)}
+                      className="px-4 py-2 text-xs font-mono text-[#6B6B6B] hover:text-[#1A1A1A]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 text-xs font-bold uppercase tracking-wider bg-[#1A1A1A] text-white hover:bg-black transition-colors"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
           )}
 
           {/* TAB 2: FULFILLMENT QUEUE */}

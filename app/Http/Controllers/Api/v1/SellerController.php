@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Coupon;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\SellerProfile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class SellerController extends Controller
 {
@@ -151,6 +154,110 @@ class SellerController extends Controller
     }
 
     /**
+     * Update an existing product listing with variants and images.
+     */
+    public function updateProduct(Request $request, Product $product): JsonResponse
+    {
+        $seller = $this->getSeller($request);
+        abort_unless($product->seller_id === $seller->id || $request->user()?->isAdmin(), 403, 'Unauthorized.');
+
+        $validated = $request->validate([
+            'category_id' => ['sometimes', 'nullable', 'exists:categories,id'],
+            'name' => ['sometimes', 'string', 'max:255'],
+            'description' => ['sometimes', 'nullable', 'string'],
+            'price' => ['sometimes', 'integer', 'min:0'],
+            'stock' => ['sometimes', 'integer', 'min:0'],
+            'status' => ['sometimes', 'in:active,draft,archived'],
+            'is_active' => ['sometimes', 'boolean'],
+            'variants' => ['sometimes', 'array'],
+            'variants.*.id' => ['sometimes', 'nullable', 'integer'],
+            'variants.*.size' => ['required_with:variants', 'string'],
+            'variants.*.color' => ['required_with:variants', 'string'],
+            'variants.*.sku' => ['required_with:variants', 'string'],
+            'variants.*.stock_quantity' => ['required_with:variants', 'integer', 'min:0'],
+            'variants.*.price_override' => ['nullable', 'integer', 'min:0'],
+            'images' => ['sometimes', 'array'],
+            'images.*' => ['string', 'url'],
+        ]);
+
+        $updateData = [];
+        if (isset($validated['category_id'])) {
+            $updateData['category_id'] = $validated['category_id'];
+        }
+        if (isset($validated['name'])) {
+            $updateData['name'] = $validated['name'];
+        }
+        if (array_key_exists('description', $validated)) {
+            $updateData['description'] = $validated['description'];
+        }
+        if (isset($validated['price'])) {
+            $updateData['price'] = $validated['price'];
+        }
+        if (isset($validated['stock'])) {
+            $updateData['stock'] = $validated['stock'];
+        }
+        if (isset($validated['status'])) {
+            $updateData['status'] = $validated['status'];
+        }
+        if (array_key_exists('is_active', $validated)) {
+            $updateData['is_active'] = $validated['is_active'];
+        }
+
+        if (! empty($updateData)) {
+            $product->update($updateData);
+        }
+
+        if (isset($validated['variants'])) {
+            foreach ($validated['variants'] as $varData) {
+                if (! empty($varData['id'])) {
+                    $variant = $product->variants()->where('id', $varData['id'])->first();
+                    if ($variant) {
+                        $variant->update($varData);
+
+                        continue;
+                    }
+                }
+                $product->variants()->create($varData);
+            }
+        }
+
+        if (isset($validated['images'])) {
+            $product->galleryImages()->delete();
+            foreach ($validated['images'] as $idx => $url) {
+                $product->galleryImages()->create([
+                    'url' => $url,
+                    'sort_order' => $idx,
+                ]);
+            }
+        }
+
+        $product->load(['variants', 'galleryImages', 'category']);
+
+        return response()->json([
+            'message' => 'Product updated successfully.',
+            'product' => $product,
+        ]);
+    }
+
+    /**
+     * Archive or delete a product listing.
+     */
+    public function destroyProduct(Request $request, Product $product): JsonResponse
+    {
+        $seller = $this->getSeller($request);
+        abort_unless($product->seller_id === $seller->id || $request->user()?->isAdmin(), 403, 'Unauthorized.');
+
+        $product->update([
+            'status' => 'archived',
+            'is_active' => false,
+        ]);
+
+        return response()->json([
+            'message' => 'Product listing archived successfully.',
+        ]);
+    }
+
+    /**
      * Orders containing products from this seller.
      */
     public function orders(Request $request): JsonResponse
@@ -209,5 +316,84 @@ class SellerController extends Controller
             'stripe_account_id' => $seller->stripe_account_id,
             'payout_ready' => true,
         ]);
+    }
+
+    /**
+     * Upload product media image directly to storage.
+     */
+    public function uploadMedia(Request $request): JsonResponse
+    {
+        $this->getSeller($request);
+
+        $request->validate([
+            'image' => ['required', 'file', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+        ]);
+
+        $file = $request->file('image');
+        if (! $file) {
+            throw ValidationException::withMessages(['image' => 'No image file uploaded.']);
+        }
+
+        $path = $file->store('products', 'public');
+        $url = Storage::disk('public')->url($path);
+
+        return response()->json([
+            'message' => 'Image uploaded successfully.',
+            'url' => $url,
+            'path' => $path,
+        ], 201);
+    }
+
+    /**
+     * List all coupons issued by this seller.
+     */
+    public function coupons(Request $request): JsonResponse
+    {
+        $seller = $this->getSeller($request);
+
+        $coupons = Coupon::where('seller_id', $seller->id)
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json($coupons);
+    }
+
+    /**
+     * Create a new discount coupon for this seller's shop.
+     */
+    public function storeCoupon(Request $request): JsonResponse
+    {
+        $seller = $this->getSeller($request);
+
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:32', 'unique:coupons,code'],
+            'discount_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'discount_amount' => ['nullable', 'integer', 'min:1'],
+            'min_order_amount' => ['nullable', 'integer', 'min:0'],
+            'max_uses' => ['nullable', 'integer', 'min:1'],
+            'expires_at' => ['nullable', 'date', 'after:now'],
+        ]);
+
+        if (empty($validated['discount_percent']) && empty($validated['discount_amount'])) {
+            throw ValidationException::withMessages([
+                'discount_percent' => 'Either discount percentage or fixed discount amount is required.',
+            ]);
+        }
+
+        $coupon = Coupon::create([
+            'seller_id' => $seller->id,
+            'code' => strtoupper(trim($validated['code'])),
+            'discount_percent' => $validated['discount_percent'] ?? null,
+            'discount_amount' => $validated['discount_amount'] ?? null,
+            'min_order_amount' => $validated['min_order_amount'] ?? 0,
+            'max_uses' => $validated['max_uses'] ?? null,
+            'expires_at' => $validated['expires_at'] ?? null,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'message' => 'Coupon created successfully.',
+            'coupon' => $coupon,
+        ], 201);
     }
 }

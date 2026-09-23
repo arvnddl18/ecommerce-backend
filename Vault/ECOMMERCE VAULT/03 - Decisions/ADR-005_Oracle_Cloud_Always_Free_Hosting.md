@@ -1,8 +1,11 @@
 # ADR-005: Oracle Cloud Always-Free Hosting
 
-Status: VERIFIED
+Status: PROPOSED (Production Target Blueprint)
 Date: 2026-09-23
-Tags: #adr #cloud #hosting
+Tags: #adr #cloud #hosting #proposed #blueprint
+
+> [!NOTE]
+> This ADR defines the planned production infrastructure blueprint. The application is currently running locally on SQLite/Windows; deployment to an active OCI instance has not yet taken place.
 
 ## Context
 Running a complete multi-container Docker stack (Nginx, PHP-FPM, Postgres, Redis, Queue Worker, Scheduler) typically requires a VPS costing $20–$50/month, whereas standard free-tier PaaS (Render, Railway, Fly.io) impose severe CPU/RAM limits, sleep cycles, and ephemeral databases.

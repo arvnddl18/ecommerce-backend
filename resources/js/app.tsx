@@ -3,13 +3,14 @@ import { createRoot } from 'react-dom/client';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { Navbar } from './components/Navbar';
-import { EditorialIntro } from './components/EditorialIntro';
+import { ShopHeading } from './components/ShopHeading';
 import { RackRailNav } from './components/RackRailNav';
 import { ProductGrid } from './components/ProductGrid';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { CartDrawer } from './components/CartDrawer';
 import { AuthModal } from './components/AuthModal';
 import { WishlistModal } from './components/WishlistModal';
+import { BuyerOrderHistoryModal } from './components/BuyerOrderHistoryModal';
 import { SellerDashboard } from './components/SellerDashboard';
 import { AdminPanel } from './components/AdminPanel';
 import { OrderSuccess } from './components/OrderSuccess';
@@ -17,13 +18,19 @@ import { OrderCancel } from './components/OrderCancel';
 import { Category, Product } from './types';
 
 const MainApp: React.FC = () => {
-  const { isAuthenticated, token } = useAuth();
+  const { user, isAuthenticated, token } = useAuth();
   const [currentSurface, setCurrentSurface] = useState<'storefront' | 'seller' | 'admin'>('storefront');
+  const [currentSort, setCurrentSort] = useState<string>('newest');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeProduct, setActiveProduct] = useState<Product | null>(null);
-  const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
+  const [authModalConfig, setAuthModalConfig] = useState<{
+    isOpen: boolean;
+    initialRole?: 'buyer' | 'seller';
+    initialMode?: 'login' | 'register';
+  }>({ isOpen: false });
   const [isWishlistOpen, setIsWishlistOpen] = useState<boolean>(false);
+  const [isOrdersOpen, setIsOrdersOpen] = useState<boolean>(false);
   const [wishlistIds, setWishlistIds] = useState<number[]>([]);
 
   const pathname = window.location.pathname;
@@ -61,9 +68,13 @@ const MainApp: React.FC = () => {
     }
   }, [isAuthenticated, token]);
 
+  const openAuth = (mode: 'login' | 'register' = 'login', role: 'buyer' | 'seller' = 'buyer') => {
+    setAuthModalConfig({ isOpen: true, initialMode: mode, initialRole: role });
+  };
+
   const handleToggleWishlist = async (productId: number) => {
     if (!isAuthenticated || !token) {
-      setIsAuthOpen(true);
+      openAuth('login', 'buyer');
       return;
     }
 
@@ -117,7 +128,7 @@ const MainApp: React.FC = () => {
     <div className="min-h-screen bg-[#FAFAF8] text-[#1A1A1A] flex flex-col font-sans selection:bg-[#FF5A36] selection:text-white">
       {/* Site Header matching references/style.css */}
       <Navbar
-        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenAuth={() => openAuth('login', 'buyer')}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         currentSurface={currentSurface}
@@ -125,9 +136,16 @@ const MainApp: React.FC = () => {
         wishlistCount={wishlistIds.length}
         onOpenWishlist={() => {
           if (!isAuthenticated) {
-            setIsAuthOpen(true);
+            openAuth('login', 'buyer');
           } else {
             setIsWishlistOpen(true);
+          }
+        }}
+        onOpenOrders={() => {
+          if (!isAuthenticated) {
+            openAuth('login', 'buyer');
+          } else {
+            setIsOrdersOpen(true);
           }
         }}
       />
@@ -135,32 +153,96 @@ const MainApp: React.FC = () => {
       {/* Main Viewport */}
       <main className="flex-1 overflow-hidden">
         {currentSurface === 'seller' ? (
-          <SellerDashboard onBackToStore={() => setCurrentSurface('storefront')} />
+          isAuthenticated && user?.role === 'seller' ? (
+            <SellerDashboard onBackToStore={() => setCurrentSurface('storefront')} />
+          ) : (
+            <div className="max-w-xl mx-auto py-24 px-6 text-center">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#FF5A36] block mb-2">
+                Restricted Workspace
+              </span>
+              <h2 className="text-3xl font-serif font-medium text-[#1A1A1A] mb-3">
+                Atelier Authentication Required
+              </h2>
+              <p className="text-xs text-[#6B6B6B] mb-8 leading-relaxed">
+                The Seller Studio is exclusively dedicated to registered and verified independent apparel ateliers. To manage listings, inventory, and Stripe payouts, please sign in with an Atelier account.
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => openAuth('login', 'seller')}
+                  className="px-6 py-3 bg-[#FF5A36] text-white text-xs font-bold uppercase tracking-widest hover:bg-[#E64A28] transition-colors cursor-pointer"
+                >
+                  Sign in as Atelier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAuth('register', 'seller')}
+                  className="px-6 py-3 border border-[#1A1A1A] text-[#1A1A1A] text-xs font-bold uppercase tracking-widest hover:bg-[#1A1A1A] hover:text-white transition-colors cursor-pointer"
+                >
+                  Apply to Sell (16+)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentSurface('storefront')}
+                  className="px-6 py-3 border border-[#E8E6E1] text-[#6B6B6B] text-xs font-bold uppercase tracking-widest hover:text-[#1A1A1A] transition-colors cursor-pointer"
+                >
+                  Return to Boutique
+                </button>
+              </div>
+            </div>
+          )
         ) : currentSurface === 'admin' ? (
-          <AdminPanel onBackToStore={() => setCurrentSurface('storefront')} />
+          isAuthenticated && user?.role === 'admin' ? (
+            <AdminPanel onBackToStore={() => setCurrentSurface('storefront')} />
+          ) : (
+            <div className="max-w-xl mx-auto py-24 px-6 text-center">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-[#D14343] block mb-2">
+                Security Clearance
+              </span>
+              <h2 className="text-3xl font-serif font-medium text-[#1A1A1A] mb-3">
+                Administrator Access Only
+              </h2>
+              <p className="text-xs text-[#6B6B6B] mb-8 leading-relaxed">
+                This console is reserved exclusively for platform operations, seller dispute management, and platform metrics.
+              </p>
+              <button
+                type="button"
+                onClick={() => setCurrentSurface('storefront')}
+                className="px-6 py-3 bg-[#1A1A1A] text-white text-xs font-bold uppercase tracking-widest hover:bg-[#333333] transition-colors cursor-pointer"
+              >
+                Return to Storefront
+              </button>
+            </div>
+          )
         ) : pathname === '/order/success' ? (
           <OrderSuccess onReturnToStore={navigateToCatalog} />
         ) : pathname === '/order/cancel' ? (
           <OrderCancel onReturnToStore={navigateToCatalog} />
         ) : (
           <>
-            {/* The Rail & The Rack Storefront Layout */}
-            <EditorialIntro onExploreClick={scrollToCatalog} />
+            {/* Shop Heading matching references/index.html */}
+            <ShopHeading
+              currentSort={currentSort}
+              onSortChange={setCurrentSort}
+              eyebrow={selectedCategory ? 'Collection Archive' : 'New arrivals'}
+              title={selectedCategory ? selectedCategory.replace('-', ' ') : 'Shop the latest'}
+            />
 
-            {/* Horizontal Scrollable Rack Rail Category Navigation */}
+            {/* Horizontal Category Rack Rail */}
             <RackRailNav
               categories={categories}
               selectedCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
             />
 
-            {/* Asymmetric Editorial Product Grid & Story Section */}
+            {/* 4-Column Product Grid & Story Section */}
             <ProductGrid
               onViewProduct={(product) => setActiveProduct(product)}
               selectedCategory={selectedCategory}
               onSelectCategory={setSelectedCategory}
               wishlistIds={wishlistIds}
               onToggleWishlist={handleToggleWishlist}
+              currentSort={currentSort}
             />
           </>
         )}
@@ -189,40 +271,87 @@ const MainApp: React.FC = () => {
         onToggleWishlist={handleToggleWishlist}
       />
 
-      {/* Auth Modal with Age Gate */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
+      {/* Buyer Order History Modal */}
+      <BuyerOrderHistoryModal
+        isOpen={isOrdersOpen}
+        onClose={() => setIsOrdersOpen(false)}
+        onReviewProduct={(productId) => {
+          fetch(`/api/v1/products/${productId}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data?.data) {
+                setActiveProduct(data.data);
+              }
+            })
+            .catch(() => {});
+        }}
       />
 
-      {/* Site Footer matching references/style.css */}
+      {/* Auth Modal with Age Gate */}
+      <AuthModal
+        isOpen={authModalConfig.isOpen}
+        onClose={() => setAuthModalConfig((prev) => ({ ...prev, isOpen: false }))}
+        initialMode={authModalConfig.initialMode}
+        initialRole={authModalConfig.initialRole}
+      />
+
+      {/* Site Footer matching references/index.html & references/style.css */}
       <footer className="site-footer">
-        <p className="font-serif">
-          MAISON COLLECTIVE © {new Date().getFullYear()} — Multi-Vendor Apparel Archive
-        </p>
+        <a
+          className="wordmark cursor-pointer"
+          href="#top"
+          onClick={(e) => {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          FOLD<span>.</span>
+        </a>
+        <p>Good clothes, no noise.</p>
 
         <div className="footer-links">
-          <button
-            type="button"
-            onClick={() => setCurrentSurface('seller')}
-            className="hover:text-[#FF5A36] transition-colors cursor-pointer bg-transparent border-0"
-          >
-            Atelier Onboarding
-          </button>
-          <button
-            type="button"
-            onClick={() => setCurrentSurface('admin')}
-            className="hover:text-[#FF5A36] transition-colors cursor-pointer bg-transparent border-0"
-          >
-            Platform Oversight
-          </button>
-          <a
-            href="https://github.com/arvnddl18/ecommerce-backend"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-[#FF5A36] transition-colors"
-          >
-            Repository
+          {isAuthenticated && user?.role === 'seller' ? (
+            <button
+              type="button"
+              onClick={() => setCurrentSurface('seller')}
+              className="hover:text-[#FF5A36] transition-colors cursor-pointer bg-transparent border-0"
+            >
+              Seller Studio
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                if (isAuthenticated) {
+                  alert('You are currently signed in as a Collector. To manage an atelier, please sign in with an Atelier account.');
+                } else {
+                  openAuth('register', 'seller');
+                }
+              }}
+              className="hover:text-[#FF5A36] transition-colors cursor-pointer bg-transparent border-0"
+            >
+              Atelier Onboarding
+            </button>
+          )}
+
+          {isAuthenticated && user?.role === 'admin' && (
+            <button
+              type="button"
+              onClick={() => setCurrentSurface('admin')}
+              className="hover:text-[#D14343] transition-colors cursor-pointer bg-transparent border-0 text-[#D14343]"
+            >
+              Platform Oversight
+            </button>
+          )}
+
+          <a href="#" className="hover:text-[#FF5A36] transition-colors">
+            Instagram
+          </a>
+          <a href="#" className="hover:text-[#FF5A36] transition-colors">
+            Contact
+          </a>
+          <a href="#" className="hover:text-[#FF5A36] transition-colors">
+            Shipping
           </a>
         </div>
       </footer>

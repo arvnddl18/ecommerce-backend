@@ -1,8 +1,8 @@
 # Domain Model & Core Entities
 
-Status: PROPOSED / CONSOLIDATED
+Status: VERIFIED
 Last Updated: 2026-09-23
-Tags: #domain #models #database #schema #marketplace
+Tags: #domain #models #database #schema #marketplace #verified
 
 ## 1. Entity Relationship Overview
 ```
@@ -48,22 +48,22 @@ orders ──── order_items ──── product_variants
 - Visual assets for apparel listings with ordering support.
 - Fields: `id`, `product_id` (FK → `products`), `url`, `sort_order`.
 
-### 7. `carts` & `cart_items`
-- Persistent or guest session shopping cart holding variant selections.
-- Fields: `carts` (`id`, `user_id` nullable), `cart_items` (`id`, `cart_id`, `variant_id`, `quantity`).
+### 7. `cart` (Cache-Backed Data Structure)
+- Fast, session-backed in-memory shopping cart holding variant selections and applied promotional vouchers.
+- Stored via `CartService.php` in cache (`cart:{token}` and `cart:coupon:{token}`). No database table overhead required for transient cart states.
 
 ### 8. `orders` & `order_items`
 - Multi-seller aggregate orders with denormalized seller references for payment splitting.
-- Fields: `orders` (`id`, `user_id`, `status`: `pending`, `paid`, `shipped`, `delivered`, `cancelled`, `total_amount`, `shipping_address_id`).
-- Fields: `order_items` (`id`, `order_id`, `variant_id`, `seller_id` denormalized for payout calculation, `quantity`, `unit_price`).
+- Fields: `orders` (`id`, `user_id`, `order_number`, `status`: `pending`, `paid`, `processing`, `completed`, `cancelled`, `refunded`, `total_amount`, `currency`, `stripe_session_id`, `stripe_payment_intent_id`, `customer_email`, `customer_name`, `shipping_address` JSON, `billing_address` JSON, `metadata` JSON).
+- Fields: `order_items` (`id`, `order_id`, `product_id`, `variant_id`, `variant_details` JSON, `seller_id` denormalized for payout calculation, `product_name`, `quantity`, `unit_price`, `total_price`, `fulfillment_status`).
 
-### 9. `payments`
-- Stripe payment intent and multi-seller disbursement records.
-- Fields: `id`, `order_id`, `stripe_payment_intent_id`, `status` (`pending`, `succeeded`, `failed`, `refunded`), `amount`.
+### 9. Payment Records (Embedded on Orders)
+- Stripe checkout session and payment intent data are tracked directly on `orders` (`stripe_session_id`, `stripe_payment_intent_id`, `metadata.stripe_refund_id`).
+- Incoming events logged in `webhook_events` (`stripe_event_id`, `type`, `payload`, `processed_at`) for idempotency.
 
 ### 10. `reviews`
 - Verified post-purchase buyer feedback.
-- Fields: `id`, `product_id`, `user_id`, `order_item_id` (FK ensuring verified purchase), `rating` (1–5), `comment`.
+- Fields: `id`, `product_id`, `user_id`, `order_item_id` (FK ensuring verified purchase), `rating` (1–5), `comment`, `status`.
 
 ### 11. `wishlists`
 - Save-for-later product bookmarks.
@@ -71,7 +71,11 @@ orders ──── order_items ──── product_variants
 
 ### 12. `addresses`
 - Customer shipping and billing destinations.
-- Fields: `id`, `user_id`, `line1`, `line2`, `city`, `province`, `postal_code`, `country`.
+- Fields: `id`, `user_id`, `line1`, `line2`, `city`, `province`, `postal_code`, `country`, `is_default`.
+
+### 13. `coupons`
+- Shop-scoped or platform-wide promotional discount codes.
+- Fields: `id`, `seller_id` (nullable FK), `code`, `discount_percent`, `discount_amount`, `min_order_amount`, `max_uses`, `uses_count`, `expires_at`, `is_active`.
 
 ## 3. Related Links
 - [[CORE_MEMORY]]

@@ -89,6 +89,31 @@ Tags: #log #milestones #completed
   - Core Memory & Preferences: [[CORE_MEMORY]], [[Developer_and_System_Preferences]], [[CURRENT_STATE]]
 - [x] Automated QA: 37 PHPUnit tests passing (152 assertions, 0 failures), 100% Pint PSR-12 compliance, clean Vite production compilation.
 
+## Phase 6: Variant-Level Inventory & Initial Vault Alignment
+- [x] Implemented variant-specific cart management (`{productId}_{variantId}` keys, price overrides, and variant validation in `CartService` and `AddToCartRequest`).
+- [x] Integrated variant stock validation and line item details persistence (`variant_id`, `size`, `color`, `sku`) in `CheckoutController` and `OrderItem`.
+- [x] Implemented atomic inventory deductions for both `ProductVariant` and `Product` in `ProcessStripeWebhookJob`.
+- [x] Added Stripe Connect webhook event handling (`account.updated`) to synchronize seller verification and payout status.
+- [x] Frontend variant integration: connected garment variant selection in `ProductDetailModal` to `CartContext`, rendered variant pills in `CartDrawer`.
+- [x] Verified role-based interface isolation: separated buyer, seller, and admin surfaces (`RoleAccessIsolationTest`, documented in `ADR-009`).
+- [x] Implemented above-the-fold catalog grid and immediate purchase urgency (`ShopHeading`, 4-column grid matching reference mockup, documented in `ADR-010`).
+
+## Phase 7: True Implementation of Missing Features (Gaps Closed)
+- [x] **Buyer Past Order Stream & Customer Portal:** Added `OrderController` (`GET /api/v1/orders`, `GET /api/v1/orders/{id}`) with strict cross-buyer authorization and built React `BuyerOrderHistoryModal.tsx` displaying receipts, tracking, and item pills.
+- [x] **Seller Product Lifecycle Management:** Added `PUT /api/v1/seller/products/{id}` (edit) and `DELETE /api/v1/seller/products/{id}` (archive) in `SellerController.php`. Implemented "Cuts & Inventory" tab in `SellerDashboard.tsx` with modal editing.
+- [x] **Automated Stripe Connect Transfer Execution:** Implemented dynamic vendor payout allocation (10% platform fee, 90% seller share) and real `\Stripe\Transfer::create()` execution in `ProcessStripeWebhookJob.php`.
+- [x] **Transactional Queued Email Notifications:** Created `OrderConfirmationMail` and `SellerOrderNotificationMail` with bespoke "The Rail & The Rack" HTML templates, queued asynchronously via Redis.
+- [x] **Admin Governance & Category Hierarchy:** Added admin category tree CRUD (`POST`, `PUT`, `DELETE` with `parent_id` support) and user moderation suspension (`PUT /api/v1/admin/users/{id}/ban`) in `AdminController.php`.
+- [x] **Automated QA & Static Analysis:** Added 4 new test suites (`BuyerOrderHistoryTest`, `SellerProductLifecycleTest`, `StripeConnectTransferAndEmailNotificationTest`, `AdminCategoryAndModerationTest`). All **61 PHPUnit tests passing (239 assertions, 0 failures)**, Larastan **0 errors**, Pint PSR-12 clean, Vite build clean.
+
+## Phase 8: Final 100% True Verification & Gap Closure
+- [x] **Coupons & Discount Engine:** Created `coupons` table migration, `Coupon` model, Cart coupon application (`POST /api/v1/cart/coupon`, `DELETE /api/v1/cart/coupon`), checkout session line item adjustment and metadata tagging, and webhook usage count incrementing. Verified by `CouponAndDiscountTest.php`.
+- [x] **Admin Refund & Restock Pipeline:** Implemented `POST /api/v1/admin/orders/{order}/refund` in `AdminController.php` with Stripe Refund integration and atomic inventory replenishment for base products and variant cuts. Verified by `AdminRefundAndRestockTest.php`.
+- [x] **Direct Seller Media Upload & Shop Coupons:** Added `POST /api/v1/seller/media/upload` storing images directly to disk storage and returning public URLs. Added `POST /api/v1/seller/coupons` and `GET /api/v1/seller/coupons` for merchant discounts.
+- [x] **Product Autocomplete Search:** Implemented `GET /api/v1/products/suggestions` in `ProductController.php` returning matching products, categories, and sellers. Verified by `SellerMediaUploadAndSearchTest.php`.
+- [x] **Frontend Cart & Checkout Voucher Integration:** Updated `CartDrawer.tsx` and `CartContext.tsx` to support real-time voucher code input, discount row presentation, and removal.
+- [x] **Comprehensive QA & Verification Suite:** **74 passing PHPUnit tests (292 assertions, 0 failures)**, Larastan static analysis **0 errors**, Laravel Pint **100% PSR-12 clean**, Vite bundle build clean (3.30s). 100% of all specifications truly implemented in code.
+
 ## Related Links
 - [[CORE_MEMORY]]
 - [[CURRENT_STATE]]
@@ -100,4 +125,6 @@ Tags: #log #milestones #completed
 - [[ADR-006_Stripe_Connect_for_Multi_Seller_Payouts]]
 - [[ADR-007_Framer_Motion_and_Swiper_for_Frontend_Experience]]
 - [[ADR-008_The_Rail_and_The_Rack_Storefront_Design_System]]
+- [[ADR-009_Role_Based_Interface_Isolation]]
+- [[ADR-010_Above_The_Fold_Product_Grid_and_Immediate_Purchase_Urgency]]
 

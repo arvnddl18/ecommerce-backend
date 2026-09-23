@@ -1,8 +1,8 @@
 # ADR-006: Stripe Connect for Multi-Seller Payouts
 
-Status: PROPOSED
+Status: VERIFIED (Payout Splitting & Transfer Math) · PROPOSED (Hosted AccountLink Onboarding)
 Date: 2026-09-23
-Tags: #adr #architecture #payments #stripe #marketplace
+Tags: #adr #architecture #payments #stripe #marketplace #calibrated
 
 ## Context
 The platform is transitioning from a single-merchant storefront to a multi-vendor marketplace where independent apparel sellers list products, manage orders, and receive payouts under a centralized platform umbrella. A standard single-merchant Stripe Checkout integration cannot automatically disburse seller payouts, hold reserves, or split transaction funds across multiple vendor bank accounts while deducting platform commissions.
@@ -15,6 +15,13 @@ Adopt **Stripe Connect** (utilizing Express or Custom connected accounts) to han
 - **Compliance & KYC Offloading:** Stripe Connect handles KYC, tax form generation (1099-NEC/K), and international banking verification for registered sellers.
 - **Webhook & Lifecycle Handling:** Requires listening to connected account webhooks (`account.updated`, `transfer.created`, `payout.paid`) in addition to core payment intent webhooks.
 - **Data Model Impact:** Introduces `seller_profiles` and payout account IDs to track verified seller connections.
+
+## Verification in Codebase
+- **Transfer Splitting Execution:** Fully implemented via `\Stripe\Transfer::create()` in [ProcessStripeWebhookJob.php](file:///c:/arvincodework/ecommerce-backend/app/Jobs/ProcessStripeWebhookJob.php).
+- **Commission Allocation:** 10% platform commission deducted automatically; 90% net revenue credited to `seller_profiles.stripe_account_id` with `transfer_group = "ORDER_{number}"`.
+- **Transactional Notifications:** Queues [OrderConfirmationMail.php](file:///c:/arvincodework/ecommerce-backend/app/Mail/OrderConfirmationMail.php) to buyer and [SellerOrderNotificationMail.php](file:///c:/arvincodework/ecommerce-backend/app/Mail/SellerOrderNotificationMail.php) to makers.
+- **Automated QA:** Covered by [StripeConnectTransferAndEmailNotificationTest.php](file:///c:/arvincodework/ecommerce-backend/tests/Feature/StripeConnectTransferAndEmailNotificationTest.php).
+- **Merchant Onboarding Status:** Currently simulated in [SellerController.php::payoutSetup](file:///c:/arvincodework/ecommerce-backend/app/Http/Controllers/Api/v1/SellerController.php#L298-L316) using mock account strings (`acct_connect_...`) or manual account ID entry; live Stripe-hosted KYC onboarding redirect via `\Stripe\AccountLink::create()` is a planned roadmap item.
 
 ## Related Links
 - [[CORE_MEMORY]]

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cartDrawerVariants } from '../lib/motion';
 
 export const CartDrawer: React.FC = () => {
-  const { cart, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart } = useCart();
+  const { cart, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, applyCoupon, removeCoupon } = useCart();
   const { user } = useAuth();
 
   // 3-Step Checkout state: 1: Bag, 2: Delivery, 3: Confirmation
@@ -20,6 +20,9 @@ export const CartDrawer: React.FC = () => {
   });
   const [isCheckingOut, setIsCheckingOut] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [couponInput, setCouponInput] = useState<string>('');
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState<boolean>(false);
 
   if (!isCartOpen) return null;
 
@@ -69,6 +72,29 @@ export const CartDrawer: React.FC = () => {
     } catch (err: any) {
       setCheckoutError(err.message || 'An error occurred initiating checkout.');
       setIsCheckingOut(false);
+    }
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    setCouponError(null);
+    setIsApplyingCoupon(true);
+    try {
+      await applyCoupon(couponInput.trim().toUpperCase());
+      setCouponInput('');
+    } catch (err: any) {
+      setCouponError(err.message || 'Failed to apply coupon.');
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = async () => {
+    setCouponError(null);
+    try {
+      await removeCoupon();
+    } catch (err: any) {
+      setCouponError(err.message || 'Failed to remove coupon.');
     }
   };
 
@@ -158,7 +184,7 @@ export const CartDrawer: React.FC = () => {
               <div className="space-y-4">
                 {cart.items.map((item) => (
                   <div
-                    key={item.product_id}
+                    key={item.item_key || `${item.product_id}_${item.variant_id || 0}`}
                     className="flex gap-4 p-3 bg-white border border-[#E8E6E1] items-center justify-between"
                   >
                     <div className="w-16 h-20 bg-[#F0EEE9] shrink-0 border border-[#E8E6E1] overflow-hidden">
@@ -179,6 +205,11 @@ export const CartDrawer: React.FC = () => {
                       <h4 className="text-xs font-medium font-serif text-[#1A1A1A] truncate">
                         {item.name}
                       </h4>
+                      {(item.size || item.color) && (
+                        <div className="text-[10px] font-mono text-[#FF5A36] mt-0.5">
+                          {[item.size, item.color].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
                       <div className="text-xs font-mono text-[#6B6B6B] mt-0.5">
                         {item.formatted_price}
                       </div>
@@ -188,7 +219,7 @@ export const CartDrawer: React.FC = () => {
                         <div className="flex items-center border border-[#E8E6E1] bg-[#FAFAF8]">
                           <button
                             type="button"
-                            onClick={() => updateQuantity(item.product_id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.item_key || item.product_id, item.quantity - 1)}
                             disabled={item.quantity <= 1}
                             className="px-2 py-0.5 text-xs text-[#6B6B6B] hover:text-[#1A1A1A] disabled:opacity-30 cursor-pointer"
                           >
@@ -199,7 +230,7 @@ export const CartDrawer: React.FC = () => {
                           </span>
                           <button
                             type="button"
-                            onClick={() => updateQuantity(item.product_id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.item_key || item.product_id, item.quantity + 1)}
                             disabled={item.quantity >= item.stock}
                             className="px-2 py-0.5 text-xs text-[#6B6B6B] hover:text-[#1A1A1A] disabled:opacity-30 cursor-pointer"
                           >
@@ -209,7 +240,7 @@ export const CartDrawer: React.FC = () => {
 
                         <button
                           type="button"
-                          onClick={() => removeFromCart(item.product_id)}
+                          onClick={() => removeFromCart(item.item_key || item.product_id)}
                           className="text-[10px] text-[#6B6B6B] hover:text-[#D14343] transition-colors cursor-pointer ml-1"
                         >
                           Remove
@@ -319,14 +350,61 @@ export const CartDrawer: React.FC = () => {
                     {cart.formatted_subtotal}
                   </span>
                 </div>
+                {cart.coupon && (
+                  <div className="flex justify-between text-[#2E7D5B] font-medium">
+                    <span>Voucher ({cart.coupon.code})</span>
+                    <span className="font-mono">-{cart.formatted_discount || '$0.00'}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Standard Fulfillment</span>
                   <span className="text-[#2E7D5B] font-medium">Complimentary</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-[#E8E6E1] text-sm font-bold text-[#1A1A1A]">
                   <span>Total Amount</span>
-                  <span className="font-mono text-base">{cart.formatted_subtotal}</span>
+                  <span className="font-mono text-base">{cart.formatted_total || cart.formatted_subtotal}</span>
                 </div>
+              </div>
+
+              {/* Coupon Code Section */}
+              <div className="pt-2 border-t border-[#E8E6E1]">
+                {cart.coupon ? (
+                  <div className="flex items-center justify-between p-2 bg-[#F0FAF4] border border-[#BDE5CE] text-xs">
+                    <span className="text-[#2E7D5B] font-mono font-semibold">
+                      Applied: {cart.coupon.code} (-{cart.formatted_discount})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      className="text-[10px] text-[#6B6B6B] hover:text-[#D14343] underline cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="VOUCHER / PROMO CODE"
+                        value={couponInput}
+                        onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                        className="flex-1 px-3 py-1.5 text-xs bg-[#FAFAF8] border border-[#E8E6E1] text-[#1A1A1A] font-mono uppercase focus:outline-none focus:border-[#1A1A1A]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={isApplyingCoupon || !couponInput.trim()}
+                        className="px-3 py-1.5 bg-[#1A1A1A] text-white text-xs font-mono disabled:opacity-40 hover:bg-[#333] transition-colors cursor-pointer"
+                      >
+                        {isApplyingCoupon ? '...' : 'Apply'}
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className="text-[11px] text-[#D14343] font-sans">{couponError}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {!user && step === 1 && (

@@ -1,9 +1,9 @@
 # Apparel E-Commerce Marketplace — Design & Requirements Plan
 
-Status: PROPOSED
+Status: VERIFIED (Core Marketplace Engine) · ROADMAP (Social Login, Shipping Labels, Hosted Onboarding)
 Last Updated: 2026-09-23
 Author: Arvin
-Tags: #requirements #specs #marketplace #design-plan #apparel
+Tags: #requirements #specs #marketplace #design-plan #apparel #calibrated
 
 ---
 
@@ -33,45 +33,53 @@ This platform operates as a **marketplace**, not a single-seller store — multi
 
 ## 2. Functional Requirements
 
+> [!NOTE]
+> Requirements below are classified as **[VERIFIED IN CODE]** (backed by passing PHPUnit feature tests and live React components) or **[PLANNED / ROADMAP]** (future production enhancements).
+
 ### 2.1 Buyer-Facing Features
-- User registration/login (email, and optionally social login)
-- Age acknowledgment at signup (13+/16+ compliance gate)
-- Product browsing with category and filter navigation (size, color, price, brand)
-- Product search with autocomplete/suggestions
-- Product detail page (images, variants, sizing info, reviews, stock status)
-- Shopping cart (add/remove/update quantity, persists across sessions)
-- Wishlist / save-for-later
-- Checkout flow (address, shipping method, payment)
-- Order tracking and order history
-- Product reviews and ratings (post-purchase only, tied to verified order item)
-- Guest checkout (optional, reduces signup friction)
+- **[VERIFIED IN CODE]** User registration & token authentication issuing Laravel Sanctum tokens (`POST /api/v1/auth/register`, `login`).
+- **[PLANNED / ROADMAP]** Social login (OAuth / Google / Apple via Laravel Socialite).
+- **[VERIFIED IN CODE]** Age acknowledgment at signup (16+ compliance gate checkbox).
+- **[VERIFIED IN CODE]** Product browsing with category and filter navigation (size, color, seller store, price).
+- **[VERIFIED IN CODE]** Product search with live autocomplete/suggestions (`GET /api/v1/products/suggestions`).
+- **[VERIFIED IN CODE]** Product detail modal (two-zone layout, physical garment tag spec module, reviews, stock status).
+- **[VERIFIED IN CODE]** Shopping cart with variant-level line items (`CartService.php`, Redis/cache-backed).
+- **[VERIFIED IN CODE]** Promotional coupon & voucher redemption with real-time recalculation (`POST /api/v1/cart/coupon`).
+- **[VERIFIED IN CODE]** Wishlist / save-for-later collection modal (`POST /api/v1/wishlist/{id}/toggle`).
+- **[VERIFIED IN CODE]** Multi-address book management (`/api/v1/addresses`).
+- **[VERIFIED IN CODE]** 3-Step Checkout flow (Bag → Delivery Address → Stripe Hosted Checkout).
+- **[VERIFIED IN CODE]** Order tracking and customer purchase history modal (`GET /api/v1/orders`).
+- **[VERIFIED IN CODE]** Product reviews and ratings strictly restricted to verified purchasers of the item.
+- **[VERIFIED IN CODE]** Guest checkout via unique `X-Cart-Token` guest tokens.
 
 ### 2.2 Seller-Facing Features
-- Seller registration with verification/approval flow
-- Seller dashboard (sales overview, order queue, revenue summary)
-- Product management (create, edit, delete listings)
-- Category and sub-category assignment for listings
-- Variant management (size, color, stock per variant, price overrides)
-- Product image/media upload with reordering
-- Inventory tracking with low-stock alerts
-- Order management (view, update fulfillment status, print shipping labels)
-- Payment/payout setup (linking bank account or payment method via [[ADR-006_Stripe_Connect_for_Multi_Seller_Payouts]])
-- Discount/coupon creation for own listings
-- Sales analytics (top products, revenue trends)
+- **[VERIFIED IN CODE]** Seller registration with approval status moderation (`verification_status`).
+- **[VERIFIED IN CODE]** Seller dashboard overview (total revenue, items sold, active listings, low-stock variant alerts).
+- **[PLANNED / ROADMAP]** Time-series sales analytics charts (historical daily/monthly revenue trends visualizer).
+- **[VERIFIED IN CODE]** Product management (create, edit cuts, and archive listings in `SellerDashboard.tsx`).
+- **[VERIFIED IN CODE]** Category and sub-category assignment for listings.
+- **[VERIFIED IN CODE]** Variant management (size, color, stock per variant, price overrides).
+- **[VERIFIED IN CODE]** Product image upload directly to storage (`POST /api/v1/seller/media/upload`).
+- **[VERIFIED IN CODE]** Inventory tracking with low-stock warnings (`stock <= 5`).
+- **[VERIFIED IN CODE]** Order management (view order items, update fulfillment status: `pending`, `processing`, `shipped`, `delivered`, `cancelled`).
+- **[PLANNED / ROADMAP]** Physical shipping label printing (PDF/carrier generation).
+- **[VERIFIED IN CODE]** Stripe Connect payout configuration and automated `\Stripe\Transfer::create` transfers.
+- **[PLANNED / ROADMAP]** Live Stripe Connect hosted AccountLink KYC onboarding redirect.
+- **[VERIFIED IN CODE]** Shop-scoped discount coupon creation (`POST /api/v1/seller/coupons`).
 
 ### 2.3 Admin-Facing Features
-- Seller application review and approval/rejection
-- Platform-wide category management (hierarchical tree)
-- User and seller account moderation (suspend/ban)
-- Dispute and refund oversight
-- Platform-wide analytics (GMV, active sellers, active buyers)
-- Content moderation (flagged listings/reviews)
+- **[VERIFIED IN CODE]** Seller application moderation queue (approve/reject onboarding in `AdminPanel.tsx`).
+- **[VERIFIED IN CODE]** Hierarchical category management with parent/child tree (`POST/PUT/DELETE /api/v1/admin/categories`).
+- **[VERIFIED IN CODE]** User account suspension moderation (`PUT /api/v1/admin/users/{user}/ban`).
+- **[VERIFIED IN CODE]** Order refund pipeline with atomic stock restoration (`POST /api/v1/admin/orders/{order}/refund`).
+- **[PLANNED / ROADMAP]** Customer dispute management board and content reporting pipeline.
+- **[VERIFIED IN CODE]** Platform-wide analytics oversight (total GMV, order volume, buyer counts, recent order stream).
 
 ### 2.4 Platform-Wide Features
-- Secure multi-seller payment processing via Stripe Connect
-- Notification system (order updates, seller alerts — email at minimum via Redis queue)
-- Search indexing across all seller listings
-- Responsive design across mobile, tablet, desktop
+- **[VERIFIED IN CODE]** Multi-vendor payment processing via Stripe Checkout (`transfer_group = "ORDER_{number}"`).
+- **[VERIFIED IN CODE]** Automated vendor payout disbursement (10% platform commission retained, 90% credited to maker).
+- **[VERIFIED IN CODE]** Transactional email notifications via background queue (`OrderConfirmationMail`, `SellerOrderNotificationMail`).
+- **[VERIFIED IN CODE]** "The Rail & The Rack" responsive storefront UI across mobile, tablet, and desktop.
 
 ---
 
@@ -171,38 +179,40 @@ Implemented as route groups within a unified React application with role-based r
 
 ## 6. Database Schema Design
 
-### 6.1 Core Entities Overview
+### 6.1 Core Entities Overview (Actual Relational Schema)
 ```
 users ─────┬──── addresses
-           ├──── seller_profiles ──── payout_accounts
-           ├──── carts ──── cart_items
-           ├──── orders ──── order_items
+           ├──── seller_profiles (holds stripe_account_id)
+           ├──── orders ──── order_items (has variant_id, seller_id)
            ├──── wishlists
-           └──── reviews
+           └──── reviews (linked to order_item_id)
 
 categories ──── products ──── product_variants
                     │
-                    ├──── product_images
-                    └──── reviews
+                    └──── product_images
 
-orders ──── payments
-orders ──── order_items ──── product_variants
+coupons (global or seller-scoped)
+webhook_events (idempotency ledger)
+
+Note: Cart state is held in Redis/Cache (CartService.php), not an SQL table.
+Note: Payments (stripe_session_id, stripe_payment_intent_id) are columns on orders.
 ```
 
 ### 6.2 Key Tables Specification
-- `users`: `id`, `name`, `email`, `password`, `role` (buyer, seller, admin), `age_verified` (boolean), timestamps.
-- `seller_profiles`: `id`, `user_id` (FK), `store_name`, `verification_status` (pending, approved, rejected), `payout_method`.
-- `categories`: `id`, `parent_id` (nullable self FK), `name`, `slug`.
-- `products`: `id`, `seller_id` (FK), `category_id` (FK), `name`, `slug`, `description`, `base_price`, `status` (draft, active, archived).
-- `product_variants`: `id`, `product_id` (FK), `size`, `color`, `sku` (unique), `stock_quantity`, `price_override`.
+- `users`: `id`, `name`, `email`, `password`, `role` (`buyer`, `seller`, `admin`), `age_verified` (boolean), `is_banned` (boolean), timestamps.
+- `seller_profiles`: `id`, `user_id` (FK), `store_name`, `slug`, `verification_status` (`pending`, `approved`, `rejected`), `stripe_account_id`, `bio`, `rating`, `total_sales`.
+- `categories`: `id`, `parent_id` (nullable self FK), `name`, `slug`, `description`.
+- `products`: `id`, `seller_id` (FK), `category_id` (nullable FK), `name`, `slug`, `description`, `price` (cents), `stock`, `sku`, `status`, `is_active`, `images` (json).
+- `product_variants`: `id`, `product_id` (FK), `size`, `color`, `sku` (unique), `stock_quantity`, `price_override` (nullable cents).
 - `product_images`: `id`, `product_id` (FK), `url`, `sort_order`.
-- `carts` / `cart_items`: `cart_id`, `variant_id` (FK), `quantity`.
-- `orders`: `id`, `user_id` (FK), `status` (pending, paid, shipped, delivered, cancelled), `total_amount`, `shipping_address_id` (FK).
-- `order_items`: `id`, `order_id` (FK), `variant_id` (FK), `seller_id` (FK denormalized for payout splitting), `quantity`, `unit_price`.
-- `payments`: `id`, `order_id` (FK), `stripe_payment_intent_id`, `status`, `amount`.
-- `reviews`: `id`, `product_id` (FK), `user_id` (FK), `order_item_id` (FK - ensures verified purchase), `rating`, `comment`.
+- `cart`: Managed in-memory/cache via `CartService.php` (`cart:{token}` and `cart:coupon:{token}`) tracking variants, quantities, and active discount codes.
+- `orders`: `id`, `user_id` (nullable FK), `order_number`, `status` (`pending`, `paid`, `processing`, `completed`, `cancelled`, `refunded`), `total_amount`, `currency`, `stripe_session_id`, `stripe_payment_intent_id`, `customer_email`, `customer_name`, `shipping_address` (json), `billing_address` (json), `metadata` (json).
+- `order_items`: `id`, `order_id` (FK), `product_id` (FK), `seller_id` (FK denormalized for vendor payout splitting), `variant_id` (nullable FK), `variant_details` (json), `product_name`, `unit_price`, `quantity`, `total_price`, `fulfillment_status`.
+- `coupons`: `id`, `seller_id` (nullable FK), `code`, `discount_percent`, `discount_amount`, `min_order_amount`, `max_uses`, `uses_count`, `expires_at`, `is_active`.
+- `webhook_events`: `id`, `stripe_event_id` (unique), `type`, `payload` (json), `processed_at`.
+- `reviews`: `id`, `product_id` (FK), `user_id` (FK), `order_item_id` (nullable FK - ensures verified purchase), `rating` (1–5), `comment`, `status`.
 - `wishlists`: `id`, `user_id` (FK), `product_id` (FK).
-- `addresses`: `id`, `user_id` (FK), `line1`, `line2`, `city`, `province`, `postal_code`, `country`.
+- `addresses`: `id`, `user_id` (FK), `line1`, `line2`, `city`, `province`, `postal_code`, `country`, `is_default`.
 
 ---
 

@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api\v1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\v1\ProductResource;
+use App\Models\Category;
 use App\Models\Product;
+use App\Models\SellerProfile;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -84,5 +87,46 @@ class ProductController extends Controller
         $product->load(['category', 'seller', 'variants', 'galleryImages', 'reviews.user']);
 
         return new ProductResource($product);
+    }
+
+    /**
+     * Provide autocomplete suggestions for search query across products, categories, and sellers.
+     */
+    public function suggestions(Request $request): JsonResponse
+    {
+        $query = trim((string) $request->query('query', ''));
+
+        if (strlen($query) < 2) {
+            return response()->json([
+                'query' => $query,
+                'products' => [],
+                'categories' => [],
+                'sellers' => [],
+            ]);
+        }
+
+        $products = Product::active()
+            ->where(function ($q) use ($query): void {
+                $q->where('name', 'like', "%{$query}%")
+                    ->orWhere('sku', 'like', "%{$query}%");
+            })
+            ->take(5)
+            ->get(['id', 'name', 'slug', 'price', 'images']);
+
+        $categories = Category::where('name', 'like', "%{$query}%")
+            ->take(4)
+            ->get(['id', 'name', 'slug']);
+
+        $sellers = SellerProfile::where('store_name', 'like', "%{$query}%")
+            ->where('verification_status', 'approved')
+            ->take(3)
+            ->get(['id', 'store_name', 'slug']);
+
+        return response()->json([
+            'query' => $query,
+            'products' => $products,
+            'categories' => $categories,
+            'sellers' => $sellers,
+        ]);
     }
 }

@@ -1,9 +1,9 @@
 # ADR-008: "The Rail & The Rack" Boutique Storefront Design System
 
-Status: ACCEPTED
+Status: VERIFIED
 Date: 2026-09-23
 Deciders: Arvin, Senior Frontend & Visual Design Team
-Tags: #adr #frontend #ui-ux #design-system #boutique #the-rail-and-the-rack
+Tags: #adr #frontend #ui-ux #design-system #boutique #the-rail-and-the-rack #verified
 
 ---
 

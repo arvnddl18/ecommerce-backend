@@ -1,8 +1,11 @@
 # ADR-002: PostgreSQL 16 over MySQL
 
-Status: VERIFIED
+Status: VERIFIED (Docker / CI Target) · SQLite (Local Runtime)
 Date: 2026-09-23
-Tags: #adr #database #postgresql
+Tags: #adr #database #postgresql #sqlite #verified
+
+> [!NOTE]
+> PostgreSQL 16 is verified as the service container target in `docker-compose.yml` and `.github/workflows/ci.yml`. Local development currently executes against SQLite (`database/database.sqlite`) for rapid local iteration.
 
 ## Context
 E-commerce data models require rigid ACID transaction guarantees, strong concurrency controls (row-level locking during inventory deduction), and native JSON capabilities for storing raw third-party webhook payloads (e.g. Stripe events).

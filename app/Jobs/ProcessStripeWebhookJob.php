@@ -2,13 +2,22 @@
 
 namespace App\Jobs;
 
+use App\Mail\OrderConfirmationMail;
+use App\Mail\SellerOrderNotificationMail;
+use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Models\SellerProfile;
+use App\Models\User;
 use App\Models\WebhookEvent;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Stripe\Stripe;
+use Stripe\Transfer;
 
 class ProcessStripeWebhookJob implements ShouldQueue
 {
@@ -39,6 +48,9 @@ class ProcessStripeWebhookJob implements ShouldQueue
             'payment_intent.succeeded' => $this->handlePaymentIntentSucceeded($dataObject),
             'payment_intent.payment_failed' => $this->handlePaymentIntentFailed($dataObject),
             'charge.refunded' => $this->handleChargeRefunded($dataObject),
+            'account.updated' => $this->handleAccountUpdated($dataObject),
+            'transfer.created' => $this->handleTransferCreated($dataObject),
+            'payout.paid' => $this->handlePayoutPaid($dataObject),
             default => Log::info("Unhandled Stripe event type: {$eventType}"),
         };
 
@@ -89,15 +101,35 @@ class ProcessStripeWebhookJob implements ShouldQueue
                 'stripe_payment_intent_id' => $paymentIntentId ?? $order->stripe_payment_intent_id,
             ]);
 
-            // Deduct inventory for purchased items
+            // Deduct inventory for purchased items (both variants and parent products)
             foreach ($order->items as $item) {
+                if ($item->variant_id) {
+                    ProductVariant::where('id', $item->variant_id)
+                        ->where('stock_quantity', '>=', $item->quantity)
+                        ->decrement('stock_quantity', $item->quantity);
+                }
+
                 if ($item->product_id) {
                     Product::where('id', $item->product_id)
                         ->where('stock', '>=', $item->quantity)
                         ->decrement('stock', $item->quantity);
                 }
             }
+
+            // Increment coupon usage count if coupon was applied
+            $couponCode = $order->metadata['coupon_code'] ?? null;
+            if ($couponCode) {
+                Coupon::where('code', $couponCode)->increment('uses_count');
+            }
         });
+
+        // Queue buyer confirmation email
+        if ($order->customer_email) {
+            Mail::to($order->customer_email)->queue(new OrderConfirmationMail($order));
+        }
+
+        // Disburse seller payouts via Stripe Connect and dispatch seller emails
+        $this->processSellerFulfillmentAndTransfers($order);
 
         Log::info("Order #{$order->order_number} successfully fulfilled and paid.");
     }
@@ -165,8 +197,13 @@ class ProcessStripeWebhookJob implements ShouldQueue
             DB::transaction(function () use ($order): void {
                 $order->update(['status' => Order::STATUS_REFUNDED]);
 
-                // Restore inventory
+                // Restore inventory for both variant and base product
                 foreach ($order->items as $item) {
+                    if ($item->variant_id) {
+                        ProductVariant::where('id', $item->variant_id)
+                            ->increment('stock_quantity', $item->quantity);
+                    }
+
                     if ($item->product_id) {
                         Product::where('id', $item->product_id)->increment('stock', $item->quantity);
                     }
@@ -174,6 +211,115 @@ class ProcessStripeWebhookJob implements ShouldQueue
             });
 
             Log::info("Order #{$order->order_number} marked as refunded and stock restored.");
+        }
+    }
+
+    /**
+     * Handle Stripe Connect account.updated event.
+     *
+     * @param  array<string, mixed>  $account
+     */
+    protected function handleAccountUpdated(array $account): void
+    {
+        $accountId = $account['id'] ?? null;
+        if (! $accountId) {
+            return;
+        }
+
+        $seller = SellerProfile::where('stripe_account_id', $accountId)->first();
+        if ($seller) {
+            $payoutsEnabled = $account['payouts_enabled'] ?? false;
+            $detailsSubmitted = $account['details_submitted'] ?? false;
+
+            if ($payoutsEnabled && $detailsSubmitted) {
+                $seller->update(['verification_status' => 'approved']);
+                Log::info("Seller #{$seller->id} verified and payouts enabled via account.updated.");
+            }
+        }
+    }
+
+    /**
+     * Handle transfer.created event for seller payouts.
+     *
+     * @param  array<string, mixed>  $transfer
+     */
+    protected function handleTransferCreated(array $transfer): void
+    {
+        $transferId = $transfer['id'] ?? null;
+        $transferGroup = $transfer['transfer_group'] ?? null;
+        $destination = $transfer['destination'] ?? null;
+        $amount = $transfer['amount'] ?? 0;
+
+        Log::info("Stripe Connect transfer created: {$transferId} for group: {$transferGroup} to: {$destination} (Amount: {$amount})");
+    }
+
+    /**
+     * Handle payout.paid event.
+     *
+     * @param  array<string, mixed>  $payout
+     */
+    protected function handlePayoutPaid(array $payout): void
+    {
+        $payoutId = $payout['id'] ?? null;
+        $amount = $payout['amount'] ?? 0;
+
+        Log::info("Stripe Connect payout paid: {$payoutId} (Amount: {$amount})");
+    }
+
+    /**
+     * Disburse Stripe Connect transfers to sellers and queue dispatch alerts.
+     */
+    protected function processSellerFulfillmentAndTransfers(Order $order): void
+    {
+        $itemsBySeller = $order->items->groupBy('seller_id');
+        $stripeSecret = config('services.stripe.secret');
+
+        foreach ($itemsBySeller as $sellerId => $sellerItems) {
+            if (! $sellerId) {
+                continue;
+            }
+
+            /** @var SellerProfile|null $seller */
+            $seller = SellerProfile::with('user')->find($sellerId);
+            if (! $seller) {
+                continue;
+            }
+
+            $grossRevenue = (int) $sellerItems->sum('total_price');
+            $platformFee = (int) round($grossRevenue * 0.10); // 10% commission
+            $netPayout = $grossRevenue - $platformFee;
+
+            // Update seller total sales tracking
+            $seller->increment('total_sales', $netPayout);
+
+            // Trigger Stripe Connect transfer if seller has a connected account
+            if ($seller->stripe_account_id && $netPayout > 0 && $stripeSecret) {
+                try {
+                    Stripe::setApiKey($stripeSecret);
+                    Transfer::create([
+                        'amount' => $netPayout,
+                        'currency' => strtolower($order->currency ?: 'usd'),
+                        'destination' => $seller->stripe_account_id,
+                        'transfer_group' => "ORDER_{$order->order_number}",
+                        'metadata' => [
+                            'order_id' => (string) $order->id,
+                            'order_number' => (string) $order->order_number,
+                            'seller_id' => (string) $seller->id,
+                            'gross_revenue' => (string) $grossRevenue,
+                            'platform_commission' => (string) $platformFee,
+                        ],
+                    ]);
+                    Log::info("Disbursed Stripe Connect transfer of {$netPayout} to seller #{$seller->id} for order #{$order->order_number}");
+                } catch (\Throwable $e) {
+                    Log::error("Failed to disburse Stripe Connect transfer to seller #{$seller->id}: {$e->getMessage()}");
+                }
+            }
+
+            // Queue notification email to seller
+            $sellerUser = $seller->user;
+            if ($sellerUser instanceof User && $sellerUser->email) {
+                Mail::to($sellerUser->email)->queue(new SellerOrderNotificationMail($order, $seller, $sellerItems, $netPayout));
+            }
         }
     }
 }

@@ -1,8 +1,11 @@
 # ADR-003: Redis for Caching, Sessions, and Queues
 
-Status: VERIFIED
+Status: VERIFIED (Docker / CI Target) · SYNC/FILE (Local Runtime)
 Date: 2026-09-23
-Tags: #adr #redis #architecture
+Tags: #adr #redis #architecture #verified
+
+> [!NOTE]
+> Redis 7 is verified in `docker-compose.yml` and GitHub Actions CI. Local runtime operates with `QUEUE_CONNECTION=sync` and `SESSION_DRIVER=file`.
 
 ## Context
 High-traffic e-commerce operations require sub-millisecond response times for session state checks, cached product lists, and reliable asynchronous processing for order fulfillment and webhook handling.

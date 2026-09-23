@@ -39,7 +39,8 @@ class CartController extends Controller
         $validated = $request->validated();
         $quantity = $validated['quantity'] ?? 1;
 
-        $cart = $this->cartService->addItem($identifier, (int) $validated['product_id'], (int) $quantity);
+        $variantId = isset($validated['variant_id']) && $validated['variant_id'] ? (int) $validated['variant_id'] : null;
+        $cart = $this->cartService->addItem($identifier, (int) $validated['product_id'], (int) $quantity, $variantId);
 
         return response()->json([
             'message' => 'Item added to cart.',
@@ -51,7 +52,7 @@ class CartController extends Controller
     /**
      * Update item quantity in the cart.
      */
-    public function update(UpdateCartRequest $request, int $productId): JsonResponse
+    public function update(UpdateCartRequest $request, string $productId): JsonResponse
     {
         $identifier = $this->resolveCartIdentifier($request);
         $validated = $request->validated();
@@ -68,7 +69,7 @@ class CartController extends Controller
     /**
      * Remove an item from the cart.
      */
-    public function destroy(Request $request, int $productId): JsonResponse
+    public function destroy(Request $request, string $productId): JsonResponse
     {
         $identifier = $this->resolveCartIdentifier($request);
         $cart = $this->cartService->removeItem($identifier, $productId);
@@ -96,6 +97,40 @@ class CartController extends Controller
     }
 
     /**
+     * Apply a discount coupon to the cart.
+     */
+    public function applyCoupon(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+        ]);
+
+        $identifier = $this->resolveCartIdentifier($request);
+        $cart = $this->cartService->applyCoupon($identifier, $validated['code']);
+
+        return response()->json([
+            'message' => 'Coupon applied successfully.',
+            'cart_token' => $identifier,
+            'data' => $cart,
+        ]);
+    }
+
+    /**
+     * Remove applied coupon from the cart.
+     */
+    public function removeCoupon(Request $request): JsonResponse
+    {
+        $identifier = $this->resolveCartIdentifier($request);
+        $cart = $this->cartService->removeCoupon($identifier);
+
+        return response()->json([
+            'message' => 'Coupon removed.',
+            'cart_token' => $identifier,
+            'data' => $cart,
+        ]);
+    }
+
+    /**
      * Resolve unique cart identifier for authenticated user or guest session token.
      */
     protected function resolveCartIdentifier(Request $request): string
@@ -107,7 +142,9 @@ class CartController extends Controller
         $headerToken = $request->header('X-Cart-Token') ?? $request->query('cart_token');
 
         if ($headerToken && is_string($headerToken) && strlen($headerToken) >= 16) {
-            return 'guest_'.preg_replace('/[^a-zA-Z0-9_\-]/', '', $headerToken);
+            $cleaned = preg_replace('/[^a-zA-Z0-9_\-]/', '', $headerToken);
+
+            return str_starts_with($cleaned, 'guest_') ? $cleaned : 'guest_'.$cleaned;
         }
 
         return 'guest_'.Str::random(32);
