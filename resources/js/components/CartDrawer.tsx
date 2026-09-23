@@ -6,7 +6,7 @@ import { cartDrawerVariants } from '../lib/motion';
 
 export const CartDrawer: React.FC = () => {
   const { cart, isCartOpen, setIsCartOpen, updateQuantity, removeFromCart, applyCoupon, removeCoupon } = useCart();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   // 3-Step Checkout state: 1: Bag, 2: Delivery, 3: Confirmation
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -42,14 +42,20 @@ export const CartDrawer: React.FC = () => {
     try {
       setIsCheckingOut(true);
       const cartToken = localStorage.getItem('cart_token');
+      const authToken = token || localStorage.getItem('auth_token');
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-Cart-Token': cartToken || '',
+      };
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
 
       const response = await fetch('/api/v1/checkout/session', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          'X-Cart-Token': cartToken || '',
-        },
+        headers,
         body: JSON.stringify({
           customer_email: emailToUse,
           customer_name: user?.name || emailToUse.split('@')[0],

@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\User;
 use App\Models\WebhookEvent;
 use App\Services\CartService;
 use App\Services\StripeService;
@@ -33,6 +34,10 @@ class CheckoutController extends Controller
     {
         $validated = $request->validated();
         $user = $request->user('sanctum');
+
+        if (! $user && ! empty($validated['customer_email'])) {
+            $user = User::where('email', $validated['customer_email'])->first();
+        }
 
         $cartIdentifier = $validated['cart_token'] ?? null;
         if (! $cartIdentifier) {

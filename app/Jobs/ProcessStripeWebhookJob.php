@@ -89,6 +89,14 @@ class ProcessStripeWebhookJob implements ShouldQueue
             return;
         }
 
+        $this->fulfillOrder($order, $paymentIntentId);
+    }
+
+    /**
+     * Atomically fulfill a paid order, deduct stock, disburse payouts, and dispatch buyer confirmation email.
+     */
+    protected function fulfillOrder(Order $order, ?string $paymentIntentId = null): void
+    {
         if ($order->status === Order::STATUS_PAID) {
             Log::info("Order #{$order->order_number} already marked as paid.");
 
@@ -123,9 +131,19 @@ class ProcessStripeWebhookJob implements ShouldQueue
             }
         });
 
-        // Queue buyer confirmation email
-        if ($order->customer_email) {
-            Mail::to($order->customer_email)->queue(new OrderConfirmationMail($order));
+        // Resolve buyer email from order record or linked user account
+        $buyerEmail = $order->customer_email ?: $order->user?->email;
+
+        // Automatically dispatch confirmation email to buyer via Resend
+        if ($buyerEmail) {
+            try {
+                Mail::to($buyerEmail)->queue(new OrderConfirmationMail($order));
+                Log::info("Order confirmation email successfully queued to {$buyerEmail} for order #{$order->order_number}");
+            } catch (\Throwable $e) {
+                Log::error("Failed to queue OrderConfirmationMail for order #{$order->order_number}: {$e->getMessage()}");
+            }
+        } else {
+            Log::warning("No recipient email found for order #{$order->order_number}; skipping buyer confirmation mail.");
         }
 
         // Disburse seller payouts via Stripe Connect and dispatch seller emails
@@ -152,9 +170,8 @@ class ProcessStripeWebhookJob implements ShouldQueue
             ->when($orderId, fn ($q) => $q->orWhere('id', $orderId))
             ->first();
 
-        if ($order && $order->status !== Order::STATUS_PAID) {
-            $order->update(['status' => Order::STATUS_PAID]);
-            Log::info("Order #{$order->order_number} updated to paid via payment_intent.succeeded.");
+        if ($order instanceof Order) {
+            $this->fulfillOrder($order, $paymentIntentId);
         }
     }
 

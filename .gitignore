@@ -1,9 +1,10 @@
 *.log
 .DS_Store
 .env
-.env.backup
-.env.production
-.env.docker.local
+.env.*
+!.env.example
+!.env.production.example
+!.env.docker
 .phpactor.json
 .phpunit.result.cache
 /.codex

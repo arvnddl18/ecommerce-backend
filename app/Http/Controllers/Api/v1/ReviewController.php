@@ -23,7 +23,10 @@ class ReviewController extends Controller
         // Check if user has purchased this product
         $orderItem = OrderItem::where('product_id', $product->id)
             ->whereHas('order', function ($q) use ($user): void {
-                $q->where('user_id', $user->id)
+                $q->where(function ($sub) use ($user): void {
+                    $sub->where('user_id', $user->id)
+                        ->orWhere('customer_email', $user->email);
+                })
                     ->whereIn('status', ['paid', 'processing', 'shipped', 'delivered']);
             })
             ->first();

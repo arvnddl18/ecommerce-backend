@@ -94,9 +94,10 @@ class StripeConnectTransferAndEmailNotificationTest extends TestCase
         $order->refresh();
         $this->assertEquals(Order::STATUS_PAID, $order->status);
 
-        // 2. Buyer received order confirmation mail
-        Mail::assertQueued(OrderConfirmationMail::class, function ($mail) use ($buyer) {
-            return $mail->hasTo($buyer->email);
+        // 2. Buyer received order confirmation mail with pass-through subject
+        Mail::assertQueued(OrderConfirmationMail::class, function ($mail) use ($buyer, $order) {
+            return $mail->hasTo($buyer->email)
+                && str_contains($mail->envelope()->subject, "Your FOLD Order #{$order->order_number} has Passed Through & is Confirmed");
         });
 
         // 3. Seller received seller order notification mail
@@ -107,5 +108,50 @@ class StripeConnectTransferAndEmailNotificationTest extends TestCase
         // 4. Seller total sales incremented by 90% ($90.00 = 9000 cents after 10% platform fee)
         $seller->refresh();
         $this->assertEquals(9000, $seller->total_sales);
+    }
+
+    public function test_payment_intent_succeeded_event_triggers_buyer_confirmation_email(): void
+    {
+        Mail::fake();
+
+        $buyer = User::factory()->create([
+            'email' => 'buyer_pi@test.com',
+            'name' => 'Elena Mercer',
+        ]);
+
+        $order = Order::create([
+            'user_id' => $buyer->id,
+            'order_number' => 'ORD-PI-1001',
+            'status' => Order::STATUS_PENDING,
+            'total_amount' => 15000,
+            'currency' => 'usd',
+            'customer_email' => $buyer->email,
+            'customer_name' => $buyer->name,
+            'stripe_payment_intent_id' => 'pi_test_direct_1001',
+        ]);
+
+        $eventPayload = [
+            'id' => 'evt_test_pi_succeeded_1001',
+            'type' => 'payment_intent.succeeded',
+            'data' => [
+                'object' => [
+                    'id' => 'pi_test_direct_1001',
+                    'metadata' => [
+                        'order_id' => $order->id,
+                        'order_number' => $order->order_number,
+                    ],
+                ],
+            ],
+        ];
+
+        $job = new ProcessStripeWebhookJob($eventPayload);
+        $job->handle();
+
+        $order->refresh();
+        $this->assertEquals(Order::STATUS_PAID, $order->status);
+
+        Mail::assertQueued(OrderConfirmationMail::class, function ($mail) use ($buyer) {
+            return $mail->hasTo($buyer->email);
+        });
     }
 }

@@ -18,7 +18,15 @@ class OrderController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User, 401, 'Unauthenticated.');
 
-        $orders = Order::where('user_id', $user->id)
+        // Auto-associate any unlinked guest orders placed with the user's verified email
+        Order::whereNull('user_id')
+            ->where('customer_email', $user->email)
+            ->update(['user_id' => $user->id]);
+
+        $orders = Order::where(function ($query) use ($user): void {
+            $query->where('user_id', $user->id)
+                ->orWhere('customer_email', $user->email);
+        })
             ->with([
                 'items.product.galleryImages',
                 'items.variant',
@@ -37,7 +45,13 @@ class OrderController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User, 401, 'Unauthenticated.');
-        abort_unless($order->user_id === $user->id || $user->isAdmin(), 403, 'Unauthorized order access.');
+
+        $isOwner = $order->user_id === $user->id || $order->customer_email === $user->email;
+        abort_unless($isOwner || $user->isAdmin(), 403, 'Unauthorized order access.');
+
+        if ($order->user_id === null && $order->customer_email === $user->email) {
+            $order->update(['user_id' => $user->id]);
+        }
 
         $order->load([
             'items.product.galleryImages',

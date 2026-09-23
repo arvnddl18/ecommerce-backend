@@ -18,8 +18,9 @@ Author: Arvin
 - Backend: Laravel 11, PHP 8.4, Laravel Sanctum (API Tokens), Laravel Boost
 - Frontend: React 18, TypeScript, Vite, Tailwind CSS (Three unified surfaces: Storefront, Seller Dashboard, Admin Panel)
 - UI Animation & Motion: Framer Motion + Swiper.js ([[ADR-007_Framer_Motion_and_Swiper_for_Frontend_Experience]])
-- Active Local Runtime: SQLite (`database/database.sqlite`), Sync queue driver, Log mail driver
+- Active Local Runtime: SQLite (`database/database.sqlite`), Sync queue driver, Resend transactional mail driver (`resend/resend-php`)
 - Production Target Spec: PostgreSQL 16 Alpine, Redis 7 Alpine, Nginx Stable Alpine, Multi-stage Docker ([[ADR-002_PostgreSQL_16_over_MySQL]], [[ADR-003_Redis_for_Caching_Sessions_and_Queues]], [[ADR-004_Multi_Stage_Docker_Builds_for_Production]])
+- Email Delivery: Resend API (`resend/resend-php`, [[ADR-011_Resend_Email_Service_Integration]], [[Resend_Email_Infrastructure_and_Lifecycle]])
 - Payment Gateway: Stripe Connect (multi-seller payout splitting, vendor connected accounts) & Webhooks ([[ADR-006_Stripe_Connect_for_Multi_Seller_Payouts]])
 - Cloud Hosting Blueprint: Oracle Cloud Infrastructure (OCI) Always-Free Tier, Cloudflare (Proposed Target, [[ADR-005_Oracle_Cloud_Always_Free_Hosting]])
 - CI/CD: GitHub Actions (Lint with Pint/Larastan, PHPUnit test suites against Postgres/Redis service containers, GHCR Docker image publishing)
@@ -68,8 +69,11 @@ Author: Arvin
 - [[ADR-008_The_Rail_and_The_Rack_Storefront_Design_System]]
 - [[ADR-009_Role_Based_Interface_Isolation]]
 - [[ADR-010_Above_The_Fold_Product_Grid_and_Immediate_Purchase_Urgency]]
+- [[ADR-011_Resend_Email_Service_Integration]]
 - [[Frontend_Design_System_Architecture]]
 - [[Apparel_Marketplace_Requirements_and_Design_Plan]]
 - [[Order_Confirmation_Dark_Theme_Mismatch]]
 - [[Seller_Gross_Sales_vs_Stripe_Reflected_Amount_Mismatch]]
 - [[GitHub_Push_Protection_and_Environment_Secrets_Leak_Remediation]]
+- [[Resend_Email_Infrastructure_and_Lifecycle]]
+- [[Guest_Checkout_Order_History_Disassociation]]

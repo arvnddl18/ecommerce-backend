@@ -28,7 +28,7 @@ class OrderConfirmationMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "Your FOLD Order #{$this->order->order_number} is Confirmed",
+            subject: "Your FOLD Order #{$this->order->order_number} has Passed Through & is Confirmed",
         );
     }
 
@@ -37,8 +37,13 @@ class OrderConfirmationMail extends Mailable implements ShouldQueue
      */
     public function content(): Content
     {
+        $this->order->loadMissing(['items.product', 'items.variant', 'user']);
+
         return new Content(
             view: 'emails.order-confirmation',
+            with: [
+                'order' => $this->order,
+            ],
         );
     }
 

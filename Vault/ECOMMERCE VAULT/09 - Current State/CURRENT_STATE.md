@@ -32,7 +32,7 @@ Tags: #current-state #roadmap #marketplace #verified #proposed
 4. **Multi-Vendor Payments, Transfers, Coupons & Restocking:**
    - Stripe Connect transfer group integration (`transfer_group = ORDER_{number}`) on Checkout sessions.
    - Real automated Stripe Connect transfers (`\Stripe\Transfer::create`) disbursing 90% net revenue to sellers after 10% platform fee.
-   - Transactional email notifications via Redis queue (`OrderConfirmationMail`, `SellerOrderNotificationMail`).
+   - Transactional email notifications via Resend API driver (`resend/resend-php`, `OrderConfirmationMail`, `SellerOrderNotificationMail`, [[ADR-011_Resend_Email_Service_Integration]], [[Resend_Email_Infrastructure_and_Lifecycle]]).
    - Denormalized `seller_id` and individual `fulfillment_status` on `order_items` for independent line-item tracking.
    - Atomic inventory deduction for both base products and variants on successful webhook handling (`ProcessStripeWebhookJob`).
    - Admin category tree CRUD and user suspension moderation (`AdminController.php`).
@@ -40,11 +40,12 @@ Tags: #current-state #roadmap #marketplace #verified #proposed
    - Promotional coupon/voucher engine (`coupons` table, `Coupon` model, Cart & Checkout discount computation).
    - Direct seller media upload (`POST /api/v1/seller/media/upload`) and autocomplete product suggestions (`GET /api/v1/products/suggestions`).
 5. **Quality & Validation Status (100% True Verification):**
-   - **PHPUnit Feature Tests:** 74 passing tests (292 assertions, 0 failures).
+   - **PHPUnit Feature Tests:** 79 passing tests (314 assertions, 0 failures).
    - **Laravel Pint:** 100% PSR-12 styling compliance.
    - **Larastan Static Analysis:** 0 errors at level 5 with full memory allocation.
-   - **Vite & TypeScript:** Clean build output (`npm run build`, 10.52s).
+   - **Vite & TypeScript:** Clean build output (`npm run build`).
    - **Boutique Docket Consistency:** Aligned order confirmation (`OrderSuccess.tsx`) and cancellation (`OrderCancel.tsx`) to "The Rail & The Rack" design system, eliminating white-on-white text and dark-box mismatches.
+   - **Resilient Order History & Verified Buyer Reviews:** Automatic email fallback reconciliation linking guest/unlinked Stripe orders directly to buyer accounts upon login or checkout session creation ([[Guest_Checkout_Order_History_Disassociation]]).
 
 ## 🛑 Active Blockers
 - None. System is completely green and ready for local development, Docker deployment, or production cloud shipping.
@@ -69,3 +70,4 @@ Tags: #current-state #roadmap #marketplace #verified #proposed
 - [[ADR-009_Role_Based_Interface_Isolation]]
 - [[ADR-010_Above_The_Fold_Product_Grid_and_Immediate_Purchase_Urgency]]
 - [[Order_Confirmation_Dark_Theme_Mismatch]]
+- [[Guest_Checkout_Order_History_Disassociation]]
