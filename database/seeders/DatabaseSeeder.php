@@ -15,11 +15,29 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'password' => bcrypt('password'),
+                'role' => 'buyer',
+                'age_verified' => true,
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        User::firstOrCreate(
+            ['email' => 'admin@apexmarketplace.com'],
+            [
+                'name' => 'Platform Super Admin',
+                'password' => bcrypt('password'),
+                'role' => 'admin',
+                'age_verified' => true,
+            ]
+        );
+
+        $this->call([
+            CategorySeeder::class,
+            ProductSeeder::class,
         ]);
     }
 }

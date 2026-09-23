@@ -1,27 +1,37 @@
 # Non-Functional Requirements
 
-Status: VERIFIED
+Status: PROPOSED / CONSOLIDATED
 Last Updated: 2026-09-23
-Tags: #requirements #specs #security #performance
+Tags: #requirements #specs #security #performance #accessibility
 
 ## 1. Performance & Latency
+- Product pages and category listings load under 2 seconds on mobile 4G networks.
+- Checkout flow completes smoothly without noticeable lag.
 - Sub-50ms API response time for cached catalog and session verification requests.
-- Sub-5s webhook response time to Stripe endpoints to avoid timeout retries.
+- Sub-5s webhook response time to Stripe endpoints to prevent retry storms.
 
-## 2. Security & Compliance
-- **Zero Cardholder Data Storage:** Never store raw credit card numbers, CVVs, or expiration dates on local infrastructure.
-- **Webhook Signature Validation:** Reject all unverified webhook payloads.
-- **Token-based Authentication:** Expiring Sanctum API tokens with scoped abilities.
-- **Environment Isolation:** Secrets and credentials strictly in `.env`, excluded from Git.
+## 2. Scalability & Availability
+- Stateless application layer horizontally scalable via container replication behind Nginx reverse proxy.
+- Target 99.5%+ uptime for portfolio-grade production deployment.
 
-## 3. Reliability & Portability
-- **Environment Parity:** Docker Compose ensures identical execution across local dev and production.
-- **Data Persistence:** Dedicated named Docker volumes for PostgreSQL and Redis.
+## 3. Security, Privacy & Compliance
+- **Zero Raw Cardholder Data:** Server never touches raw card numbers; full PCI compliance delegated to Stripe Elements / Stripe Connect.
+- **Data Privacy & Minor Protection:** Clear Terms of Service and Privacy Policy handling user data responsibly (critical for 16+ demographic).
+- **HMAC Signature Validation:** Rejection of unverified Stripe webhook payloads.
+- **Password Security:** Hashes generated strictly with Argon2id / Bcrypt.
 
-## 4. Cost Efficiency
-- Total cloud hosting footprint engineered to run perpetually within $0.00/month free-tier quotas (OCI Always-Free + Cloudflare).
+## 4. Usability & Accessibility
+- Mobile-first responsive design across phones, tablets, and desktops.
+- Checkout completable in 3 steps or fewer to minimize drop-off.
+- WCAG 2.1 AA-aligned color contrast, semantic HTML, alt text on product imagery, and full keyboard navigation support.
+
+## 5. SEO & Portability
+- Structured data markup (Schema.org `Product` JSON-LD) and clean SEO URL slugs.
+- Fully containerized multi-stage Docker builds deployable to any Docker-compatible host.
 
 ## Related Links
 - [[CORE_MEMORY]]
+- [[Apparel_Marketplace_Requirements_and_Design_Plan]]
 - [[Functional_Requirements]]
 - [[System_Architecture]]
+- [[Developer_and_System_Preferences]]

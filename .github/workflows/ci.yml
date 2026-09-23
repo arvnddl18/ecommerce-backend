@@ -1,0 +1,160 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  lint:
+    name: Code Style & Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          extensions: mbstring, bcmath, pdo, pdo_sqlite
+          coverage: none
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Composer Dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Run Laravel Pint Code Style Check
+        run: vendor/bin/pint --test
+
+      - name: Run Larastan Static Analysis
+        run: vendor/bin/phpstan analyse --memory-limit=1G
+
+      - name: Run TypeScript Type Check
+        run: npx tsc --noEmit
+
+  test:
+    name: Automated PHPUnit Feature Tests
+    needs: [lint]
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ecommerce_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          extensions: mbstring, bcmath, pdo, pdo_pgsql, pdo_sqlite, redis
+          coverage: none
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Composer Dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Install NPM Dependencies & Build Vite Assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare Testing Environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run PHPUnit Test Suite
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: ecommerce_test
+          DB_USERNAME: test_user
+          DB_PASSWORD: test_password
+          CACHE_STORE: redis
+          QUEUE_CONNECTION: redis
+          REDIS_HOST: 127.0.0.1
+          REDIS_CLIENT: predis
+        run: php artisan test --compact
+
+  build-and-push:
+    name: Build & Push Docker Image to GHCR
+    needs: [test]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-,format=short
+
+      - name: Build and push production image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/php/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
