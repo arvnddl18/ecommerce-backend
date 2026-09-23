@@ -1,0 +1,11 @@
+{
+  "userIgnoreFilters": [
+    "vendor/**",
+    "node_modules/**",
+    "storage/**",
+    ".git/**"
+  ],
+  "useMarkdownLinks": false,
+  "promptDelete": false,
+  "alwaysUpdateLinks": true
+}

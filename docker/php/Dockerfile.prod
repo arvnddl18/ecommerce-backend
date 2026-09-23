@@ -1,0 +1,78 @@
+# ==========================================
+# Stage 1: Build Frontend Assets (Vite)
+# ==========================================
+FROM node:20-alpine AS frontend
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY resources/ resources/
+COPY public/ public/
+COPY vite.config.js* ./
+RUN npm run build
+
+# ==========================================
+# Stage 2: Install Composer Dependencies
+# ==========================================
+FROM composer:2.8 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --prefer-dist \
+    --no-scripts \
+    --optimize-autoloader
+
+# ==========================================
+# Stage 3: Production PHP 8.3-FPM Image
+# ==========================================
+FROM php:8.3-fpm-alpine
+
+# Install production system dependencies
+RUN apk add --no-cache \
+    curl \
+    fcgi \
+    libzip-dev \
+    libpng-dev \
+    libxml2-dev \
+    postgresql-dev \
+    oniguruma-dev \
+    bash
+
+# Install PHP extensions
+RUN docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    mbstring \
+    zip \
+    exif \
+    pcntl \
+    bcmath \
+    xml \
+    opcache
+
+# Copy OPcache configuration
+COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+
+# Set PHP production configuration
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+WORKDIR /var/www/html
+
+# Copy application source
+COPY . .
+
+# Copy vendor dependencies from Stage 2
+COPY --from=vendor /app/vendor/ /var/www/html/vendor/
+
+# Copy compiled frontend assets from Stage 1
+COPY --from=frontend /app/public/build/ /var/www/html/public/build/
+
+# Set correct ownership for Laravel writable directories
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+USER www-data
+
+EXPOSE 9000
+
+CMD ["php-fpm"]
