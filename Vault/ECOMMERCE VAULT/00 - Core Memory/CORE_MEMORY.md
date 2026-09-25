@@ -77,3 +77,6 @@ Author: Arvin
 - [[GitHub_Push_Protection_and_Environment_Secrets_Leak_Remediation]]
 - [[Resend_Email_Infrastructure_and_Lifecycle]]
 - [[Guest_Checkout_Order_History_Disassociation]]
+- [[Docker_Containerization]]
+- [[Docker_Local_Development_and_Testing_Workflow]]
+- [[GitHub_Actions_CI_CD_Automation_and_Zero_Config_Fallback]]

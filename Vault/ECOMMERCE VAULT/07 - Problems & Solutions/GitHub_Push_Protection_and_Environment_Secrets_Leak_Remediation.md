@@ -40,14 +40,25 @@ Even though the working tree or subsequent commits may have attempted to remove 
    git reset --soft origin/main
    ```
 3. **Sanitized Staged Index Verification:**
-   Re-staged the cleansed `.env.docker` and verified with regex inspection that zero live Stripe key strings (`sk_test_*`, `whsec_*`) existed across all staged diffs:
+   Re-staged the cleansed `.env.docker` and verified with regex inspection that zero live Stripe key strings (`sk_test_*`, `whsec_*`) or Resend tokens (`re_*`) existed across all staged diffs:
    ```bash
-   git diff --staged | grep -E "sk_test_|whsec_"
+   git diff --staged | grep -E "sk_test_|whsec_|re_[a-zA-Z0-9]"
    ```
 4. **Enhanced `.gitignore`:**
    Added `.env.docker.local` to `.gitignore` to support local Docker configurations without risking accidental Git staging.
 5. **Recommitted Clean Tree:**
    Packaged the complete feature set, tests, and documentation into a single clean commit with verified zero secret exposure.
+
+---
+
+## Recurrence: 2026-09-25 (Docker Setup & Resend / Stripe Credentials)
+- **Trigger:** Commit `7b3e680` introduced active `RESEND_API_KEY` and `STRIPE_SECRET` values into `.env.docker`.
+- **GitHub Push Protection Alert:** Remote rejected push to `refs/heads/main` citing secret rule violations for Resend and Stripe keys.
+- **Remediation Action:**
+  1. Executed `git reset --soft origin/main` to uncommit without losing working tree modifications.
+  2. Sanitized `.env.docker` back to placeholder values: `RESEND_API_KEY=re_your_api_key_here`, `STRIPE_KEY=pk_test_sample`, `STRIPE_SECRET=sk_test_sample`, `STRIPE_WEBHOOK_SECRET=whsec_sample`.
+  3. Real development secrets preserved safely in untracked host `.env`.
+  4. Automated GitHub Actions CI/CD to function zero-config using GitHub-native runners, QEMU, GHCR, and Trivy without requiring external secrets.
 
 ## Prevention & Best Practices
 - **Never Put Real Keys in Tracked Files:** All `.env.*` files tracked in Git must contain ONLY placeholder values (`sample`, `your_key_here`).
@@ -59,3 +70,4 @@ Even though the working tree or subsequent commits may have attempted to remove 
 - [[Payment_Pipeline]]
 - [[Developer_and_System_Preferences]]
 - [[Completed_Milestones_Log]]
+- [[GitHub_Actions_CI_CD_Automation_and_Zero_Config_Fallback]]
