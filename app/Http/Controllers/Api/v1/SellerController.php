@@ -272,12 +272,14 @@ class SellerController extends Controller
             ->paginate(20);
 
         $orderItems->getCollection()->transform(function (OrderItem $item) {
+            $variantDetails = is_array($item->variant_details) ? $item->variant_details : [];
+
             $item->order_number = $item->order?->order_number;
             $item->order_status = $item->order?->status;
             $item->formatted_total = '₱'.number_format($item->total_price / 100, 2);
-            $item->sku = $item->variant?->sku ?? $item->product?->sku ?? 'N/A';
-            $item->size = $item->variant_details['size'] ?? 'Standard';
-            $item->color = $item->variant_details['color'] ?? 'Standard';
+            $item->sku = $item->variant->sku ?? $item->product->sku ?? 'N/A';
+            $item->size = (string) ($variantDetails['size'] ?? 'Standard');
+            $item->color = (string) ($variantDetails['color'] ?? 'Standard');
 
             return $item;
         });

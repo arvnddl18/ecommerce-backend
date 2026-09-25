@@ -8,6 +8,29 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * @property int $id
+ * @property int $order_id
+ * @property int $product_id
+ * @property int $seller_id
+ * @property int|null $variant_id
+ * @property array<string, mixed>|null $variant_details
+ * @property string $product_name
+ * @property int $unit_price
+ * @property int $quantity
+ * @property int $total_price
+ * @property string $fulfillment_status
+ * @property string|null $order_number
+ * @property string|null $order_status
+ * @property string|null $formatted_total
+ * @property string|null $sku
+ * @property string|null $size
+ * @property string|null $color
+ * @property-read Order|null $order
+ * @property-read Product|null $product
+ * @property-read ProductVariant|null $variant
+ * @property-read SellerProfile|null $seller
+ */
 #[Fillable([
     'order_id',
     'product_id',

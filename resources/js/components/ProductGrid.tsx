@@ -21,7 +21,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState<string>('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'in_stock' | 'under_150'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'in_stock' | 'under_80'>('all');
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
