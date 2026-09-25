@@ -37,15 +37,15 @@ services:
     container_name: ecommerce-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_DATABASE:-ecommerce}
-      POSTGRES_USER: ${DB_USERNAME:-ecommerce_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret123}
+      POSTGRES_DB: ${DOCKER_POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${DOCKER_POSTGRES_USER:-ecommerce_user}
+      POSTGRES_PASSWORD: ${DOCKER_POSTGRES_PASSWORD:-secret123}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-ecommerce_user} -d ${DB_DATABASE:-ecommerce}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DOCKER_POSTGRES_USER:-ecommerce_user} -d ${DOCKER_POSTGRES_DB:-ecommerce}"]
       interval: 5s
       timeout: 5s
       retries: 5

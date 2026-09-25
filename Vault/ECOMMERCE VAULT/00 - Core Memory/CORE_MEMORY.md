@@ -81,3 +81,5 @@ Author: Arvin
 - [[Docker_Local_Development_and_Testing_Workflow]]
 - [[GitHub_Actions_CI_CD_Automation_and_Zero_Config_Fallback]]
 - [[CI_CD_NPM_Lockfile_Sync_and_Static_Analysis_Fixes]]
+- [[Docker_PostgreSQL_Environment_Collision_with_Host_SQLite_Env]]
+- [[CI_CD_Docker_Compose_Integration_Exit_124_and_GHCR_Tag_Mismatch]]

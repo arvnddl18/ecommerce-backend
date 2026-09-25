@@ -14,13 +14,15 @@ RUN apk add --no-cache \
     oniguruma-dev \
     linux-headers \
     bash \
-    icu-dev
+    icu-dev \
+    sqlite-dev
 
 # Configure and install PHP extensions needed for Laravel
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
     pdo \
     pdo_pgsql \
+    pdo_sqlite \
     mbstring \
     zip \
     exif \

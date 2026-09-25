@@ -166,19 +166,67 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.4
+          extensions: mbstring, bcmath, pdo, pdo_pgsql, pdo_sqlite, redis
+          coverage: none
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Composer Dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Install NPM Dependencies & Build Vite Assets
+        run: |
+          npm ci
+          npm run build
+
+      - name: Prepare Docker Environment File
+        run: cp .env.docker .env
+
       - name: Start Docker Compose stack
         run: docker compose up -d --build
 
       - name: Wait for services to be healthy
         run: |
           docker compose ps
-          timeout 60 bash -c 'until docker compose exec -T app php artisan about >/dev/null 2>&1; do sleep 2; done'
+          for i in $(seq 1 30); do
+            if docker compose exec -T app php artisan about >/dev/null 2>&1; then
+              echo "Laravel application is responsive and database/cache connections verified!"
+              docker compose exec -T app php artisan about
+              exit 0
+            fi
+            echo "Waiting for services to become responsive... ($i/30)"
+            sleep 2
+          done
+          echo "Services failed to become healthy within 60s. Printing container status and logs:"
+          docker compose ps
+          docker compose logs
+          exit 1
 
       - name: Run database migrations
         run: docker compose exec -T app php artisan migrate --seed --force
 
       - name: Run integration tests
-        run: docker compose exec -T app php artisan test --compact
+        run: |
+          docker compose exec -T \
+            -e DB_CONNECTION=pgsql \
+            -e DB_HOST=db \
+            -e DB_PORT=5432 \
+            -e DB_DATABASE=ecommerce \
+            -e DB_USERNAME=ecommerce_user \
+            -e DB_PASSWORD=secret123 \
+            -e CACHE_STORE=redis \
+            -e QUEUE_CONNECTION=redis \
+            -e REDIS_HOST=redis \
+            -e REDIS_CLIENT=predis \
+            app php artisan test --compact
 
       - name: Cleanup
         if: always()
@@ -231,6 +279,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-,format=short
+            type=sha,prefix=sha-,format=full
 
       - name: Build and push production image (amd64 & arm64)
         uses: docker/build-push-action@v5
@@ -253,8 +302,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         with:
           image-ref: 'ghcr.io/${{ github.repository }}:sha-${{ github.sha }}'
           format: 'table'
