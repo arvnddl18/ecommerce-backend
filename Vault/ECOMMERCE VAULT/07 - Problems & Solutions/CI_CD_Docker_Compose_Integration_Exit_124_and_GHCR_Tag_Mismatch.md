@@ -125,7 +125,7 @@ Additionally, the downstream jobs `build-and-push` and `scan` contained latent b
    - Installed `icu-dev`, `libjpeg-turbo-dev`, `freetype-dev`, and enabled `gd` and `intl` extensions.
 
 6. **Synchronized Docker Tags and Authenticated Trivy**:
-   - Added `type=sha,prefix=sha-,format=full` alongside `format=short` in `metadata-action`.
+   - Added `type=sha,prefix=sha-,format=long` alongside `format=short` in `docker/metadata-action@v5` (as `docker/metadata-action` accepts `short` and `long`, rejecting `full` with an `Invalid format` error).
    - Added Docker login and `TRIVY_USERNAME` / `TRIVY_PASSWORD` credentials in `scan` job.
 
 ---
