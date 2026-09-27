@@ -1,6 +1,8 @@
 FROM php:8.4-fpm-alpine
 
 # Install system dependencies, build libraries and development packages
+# Note: libpq-dev is used instead of postgresql-dev to avoid heavy LLVM/Clang bloat
+# Note: pdo, pdo_sqlite, mbstring, and xml are already pre-compiled in php:8.4-fpm-alpine
 RUN apk add --no-cache \
     curl \
     git \
@@ -9,9 +11,7 @@ RUN apk add --no-cache \
     libpng-dev \
     libjpeg-turbo-dev \
     freetype-dev \
-    libxml2-dev \
-    postgresql-dev \
-    oniguruma-dev \
+    libpq-dev \
     linux-headers \
     bash \
     icu-dev \
@@ -19,16 +19,12 @@ RUN apk add --no-cache \
 
 # Configure and install PHP extensions needed for Laravel
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install \
-    pdo \
+    && docker-php-ext-install -j$(nproc) \
     pdo_pgsql \
-    pdo_sqlite \
-    mbstring \
     zip \
     exif \
     pcntl \
     bcmath \
-    xml \
     gd \
     intl
 
